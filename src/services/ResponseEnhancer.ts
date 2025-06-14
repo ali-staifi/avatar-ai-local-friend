@@ -1,4 +1,3 @@
-
 import { DialogueResponse } from './DialogueManager';
 import { PersonalityTrait } from '@/types/personality';
 import { EnhancedResponse } from '@/types/responseEnhancer';
@@ -7,7 +6,7 @@ import { EmotionDetector } from './response/EmotionDetector';
 import { FollowUpGenerator } from './response/FollowUpGenerator';
 import { ContextualHintGenerator } from './response/ContextualHintGenerator';
 
-export { EnhancedResponse } from '@/types/responseEnhancer';
+export type { EnhancedResponse } from '@/types/responseEnhancer';
 
 export class ResponseEnhancer {
   private currentPersonality: PersonalityTrait;
