@@ -45,8 +45,14 @@ class Avatar3DErrorBoundary extends React.Component<
   }
 }
 
-export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps> = (props) => {
-  console.log('Avatar3DWrapper rendering with props:', props);
+export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps & Record<string, any>> = (allProps) => {
+  // Filter out development-specific props that interfere with Three.js
+  const { isListening, isSpeaking, emotion, ...devProps } = allProps;
+  
+  // Only pass the actual Avatar3D props, filtering out any data-* attributes
+  const cleanProps = { isListening, isSpeaking, emotion };
+  
+  console.log('Avatar3DWrapper rendering with clean props:', cleanProps);
   
   return (
     <Avatar3DErrorBoundary>
@@ -58,7 +64,7 @@ export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps> = (props) => {
           </div>
         </div>
       }>
-        <Avatar3D {...props} />
+        <Avatar3D {...cleanProps} />
       </Suspense>
     </Avatar3DErrorBoundary>
   );
