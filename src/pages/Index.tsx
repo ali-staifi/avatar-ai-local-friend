@@ -2,15 +2,18 @@
 import React, { useState } from 'react';
 import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
 import { ChatInterface } from '@/components/ChatInterface';
+import { PersonalitySelector } from '@/components/PersonalitySelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PersonalityId } from '@/types/personality';
 
 const Index = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking' | 'listening'>('neutral');
+  const [currentPersonality, setCurrentPersonality] = useState<PersonalityId>('friendly');
 
-  console.log('Index component state:', { isListening, isSpeaking, emotion });
+  console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -21,17 +24,26 @@ const Index = () => {
             Avatar AI Local - Moteur de Discussion Avancé
           </h1>
           <p className="text-lg text-muted-foreground mb-4">
-            Assistant avatar 3D avec IA conversationnelle, mémoire contextuelle et gestion d'interruption intelligente
+            Assistant avatar 3D avec IA conversationnelle, personnalités multiples, mémoire contextuelle et gestion d'interruption intelligente
           </p>
           <div className="flex justify-center gap-2 flex-wrap">
             <Badge variant="secondary">🎤 Reconnaissance Vocale</Badge>
             <Badge variant="secondary">🔊 Synthèse Vocale</Badge>
             <Badge variant="secondary">🧠 Moteur Discussion Avancé</Badge>
+            <Badge variant="secondary">🎭 Personnalités Multiples</Badge>
             <Badge variant="secondary">💭 Mémoire Conversationnelle</Badge>
             <Badge variant="secondary">🔄 Gestion Interruption</Badge>
             <Badge variant="secondary">🎮 Avatar 3D</Badge>
             <Badge variant="secondary">🔒 100% Privé</Badge>
           </div>
+        </div>
+
+        {/* Personality Selector */}
+        <div className="mb-6">
+          <PersonalitySelector
+            currentPersonality={currentPersonality}
+            onPersonalityChange={setCurrentPersonality}
+          />
         </div>
 
         {/* Main Content */}
@@ -77,8 +89,8 @@ const Index = () => {
                     <span className="capitalize text-purple-500">{emotion}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Moteur discussion :</span>
-                    <span className="text-green-500">Avancé</span>
+                    <span>Personnalité :</span>
+                    <span className="text-blue-500 capitalize">{currentPersonality}</span>
                   </div>
                 </div>
               </div>
@@ -90,11 +102,25 @@ const Index = () => {
             onListeningChange={setIsListening}
             onSpeakingChange={setIsSpeaking}
             onEmotionChange={setEmotion}
+            onPersonalityChange={setCurrentPersonality}
+            currentPersonality={currentPersonality}
           />
         </div>
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-2">🎭 Personnalités Multiples</h3>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• 6 personnalités distinctes</li>
+                <li>• Styles de communication uniques</li>
+                <li>• Réactions émotionnelles adaptées</li>
+                <li>• Intérêts spécialisés par personnalité</li>
+              </ul>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-2">🧠 Moteur de Discussion</h3>
@@ -103,18 +129,6 @@ const Index = () => {
                 <li>• Gestion intelligente des interruptions</li>
                 <li>• Apprentissage des préférences utilisateur</li>
                 <li>• Réponses adaptées au contexte</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🔄 Fonctionnalités Avancées</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Interruption vocale intelligente</li>
-                <li>• Export de conversations</li>
-                <li>• Suivi des intérêts utilisateur</li>
-                <li>• États émotionnels dynamiques</li>
               </ul>
             </CardContent>
           </Card>

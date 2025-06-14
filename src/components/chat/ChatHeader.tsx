@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Volume2, VolumeX, RotateCcw, Download, Brain, Clock } from 'lucide-react';
+import { PersonalityTrait } from '@/types/personality';
 
 interface ChatHeaderProps {
   speechEnabled: boolean;
@@ -23,6 +23,7 @@ interface ChatHeaderProps {
     currentTask?: string;
     emotionalState: 'neutral' | 'happy' | 'thinking' | 'listening';
   };
+  currentPersonality?: PersonalityTrait;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -31,7 +32,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onResetConversation,
   onExportConversation,
   memoryStats,
-  engineState
+  engineState,
+  currentPersonality
 }) => {
   const formatDuration = (ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -53,6 +55,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <div className="flex items-center gap-2">
           <span>Chat avec Avatar AI</span>
           <Brain className="h-5 w-5 text-purple-500" />
+          {currentPersonality && (
+            <Badge variant="outline" className="ml-2">
+              {currentPersonality.emoji} {currentPersonality.name}
+            </Badge>
+          )}
         </div>
         <div className="flex gap-2">
           <Button
@@ -94,6 +101,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Badge variant="secondary" className="text-xs">
           Messages: {memoryStats.totalMessages}
         </Badge>
+        
+        {currentPersonality && (
+          <Badge 
+            variant="outline" 
+            className={`text-xs bg-gradient-to-r ${currentPersonality.color} text-white`}
+          >
+            🧠 Mode: {currentPersonality.responseStyle}
+          </Badge>
+        )}
         
         {memoryStats.userInterests.length > 0 && (
           <Badge variant="outline" className="text-xs">

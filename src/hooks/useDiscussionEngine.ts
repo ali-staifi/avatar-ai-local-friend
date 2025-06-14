@@ -1,6 +1,6 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { DiscussionEngine } from '@/services/DiscussionEngine';
+import { PersonalityId } from '@/types/personality';
 
 interface DiscussionEngineState {
   isProcessing: boolean;
@@ -9,8 +9,8 @@ interface DiscussionEngineState {
   emotionalState: 'neutral' | 'happy' | 'thinking' | 'listening';
 }
 
-export const useDiscussionEngine = () => {
-  const engineRef = useRef<DiscussionEngine>(new DiscussionEngine());
+export const useDiscussionEngine = (initialPersonality: PersonalityId = 'friendly') => {
+  const engineRef = useRef<DiscussionEngine>(new DiscussionEngine(initialPersonality));
   const [engineState, setEngineState] = useState<DiscussionEngineState>({
     isProcessing: false,
     canBeInterrupted: true,
@@ -48,6 +48,15 @@ export const useDiscussionEngine = () => {
     };
   }, []);
 
+  const changePersonality = useCallback((personalityId: PersonalityId) => {
+    console.log('🎭 Changement de personnalité vers:', personalityId);
+    engineRef.current.setPersonality(personalityId);
+  }, []);
+
+  const getCurrentPersonality = useCallback(() => {
+    return engineRef.current.getCurrentPersonality();
+  }, []);
+
   const processMessage = useCallback(async (message: string): Promise<string> => {
     try {
       console.log('🎯 Traitement du message via le moteur de discussion');
@@ -72,9 +81,9 @@ export const useDiscussionEngine = () => {
     return engineRef.current.exportMemory();
   }, []);
 
-  const resetConversation = useCallback(() => {
+  const resetConversation = useCallback((newPersonality?: PersonalityId) => {
     console.log('🔄 Réinitialisation de la conversation');
-    engineRef.current = new DiscussionEngine();
+    engineRef.current = new DiscussionEngine(newPersonality || 'friendly');
     
     // Réinitialiser les callbacks
     engineRef.current.setStateChangeCallback((state) => {
@@ -102,6 +111,10 @@ export const useDiscussionEngine = () => {
     // États dérivés pour compatibilité
     isProcessing: engineState.isProcessing,
     canBeInterrupted: engineState.canBeInterrupted,
-    emotionalState: engineState.emotionalState
+    emotionalState: engineState.emotionalState,
+    
+    // Nouvelles fonctions de personnalité
+    changePersonality,
+    getCurrentPersonality
   };
 };

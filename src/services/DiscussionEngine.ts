@@ -1,3 +1,4 @@
+import { PERSONALITY_TRAITS, PersonalityTrait, PersonalityId } from '@/types/personality';
 
 interface ConversationMemory {
   id: string;
@@ -26,10 +27,11 @@ interface DiscussionState {
 export class DiscussionEngine {
   private memory: ConversationMemory;
   private state: DiscussionState;
+  private currentPersonality: PersonalityTrait;
   private interruptionCallback?: () => void;
   private stateChangeCallback?: (state: DiscussionState) => void;
 
-  constructor() {
+  constructor(personalityId: PersonalityId = 'friendly') {
     this.memory = {
       id: this.generateConversationId(),
       messages: [],
@@ -46,6 +48,8 @@ export class DiscussionEngine {
       canBeInterrupted: true,
       emotionalState: 'neutral'
     };
+
+    this.currentPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId) || PERSONALITY_TRAITS[0];
   }
 
   private generateConversationId(): string {
@@ -63,6 +67,18 @@ export class DiscussionEngine {
   private updateState(updates: Partial<DiscussionState>) {
     this.state = { ...this.state, ...updates };
     this.stateChangeCallback?.(this.state);
+  }
+
+  public setPersonality(personalityId: PersonalityId) {
+    const newPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId);
+    if (newPersonality) {
+      this.currentPersonality = newPersonality;
+      console.log(`🎭 Personnalité changée vers: ${newPersonality.name}`);
+    }
+  }
+
+  public getCurrentPersonality(): PersonalityTrait {
+    return this.currentPersonality;
   }
 
   public async processUserInput(input: string): Promise<string> {
@@ -181,95 +197,80 @@ export class DiscussionEngine {
     const userInterests = this.memory.userProfile.interests;
     const conversationHistory = this.memory.messages.slice(-3);
     
-    // Réponses contextuelles basées sur l'historique
-    const responses = this.getContextualResponses(input, conversationHistory, userInterests, userPreferences);
+    // Générer une réponse basée sur la personnalité
+    const personalityResponse = this.generatePersonalityBasedResponse(input, conversationHistory);
     
-    // Sélectionner une réponse appropriée
-    return this.selectBestResponse(responses, input);
+    return personalityResponse;
   }
 
-  private getContextualResponses(
-    input: string, 
-    history: typeof this.memory.messages,
-    interests: string[],
-    preferences: string[]
-  ): string[] {
-    const responses: string[] = [];
+  private generatePersonalityBasedResponse(input: string, history: typeof this.memory.messages): string {
     const inputLower = input.toLowerCase();
-
-    // Réponses basées sur l'historique
-    if (history.length > 0) {
-      const lastTopic = history[history.length - 1]?.content;
-      if (lastTopic) {
-        responses.push(`En lien avec notre discussion précédente sur "${lastTopic.substring(0, 50)}...", je dirais que ${this.generateFollowUp(input)}`);
-      }
+    const personality = this.currentPersonality;
+    
+    // Utiliser les patterns de langage de la personnalité
+    const speechPattern = personality.speechPattern[Math.floor(Math.random() * personality.speechPattern.length)];
+    
+    // Générer une réponse contextuelle selon la personnalité
+    let baseResponse = '';
+    
+    // Réponses spécifiques selon le type de personnalité
+    switch (personality.responseStyle) {
+      case 'warm':
+        baseResponse = this.generateWarmResponse(input, speechPattern);
+        break;
+      case 'analytical':
+        baseResponse = this.generateAnalyticalResponse(input, speechPattern);
+        break;
+      case 'creative':
+        baseResponse = this.generateCreativeResponse(input, speechPattern);
+        break;
+      case 'supportive':
+        baseResponse = this.generateSupportiveResponse(input, speechPattern);
+        break;
+      case 'enthusiastic':
+        baseResponse = this.generateEnthusiasticResponse(input, speechPattern);
+        break;
+      case 'peaceful':
+        baseResponse = this.generatePeacefulResponse(input, speechPattern);
+        break;
+      default:
+        baseResponse = `${speechPattern} Voici ma perspective sur votre question.`;
     }
-
-    // Réponses basées sur les intérêts
-    const matchedInterest = interests.find(interest => inputLower.includes(interest));
-    if (matchedInterest) {
-      responses.push(`Je vois que vous vous intéressez à ${matchedInterest}. ${this.generateInterestBasedResponse(input, matchedInterest)}`);
+    
+    // Ajouter un contexte basé sur les intérêts de la personnalité
+    const relatedInterest = personality.interests.find(interest => 
+      inputLower.includes(interest.toLowerCase())
+    );
+    
+    if (relatedInterest) {
+      baseResponse += ` D'ailleurs, je trouve le domaine de ${relatedInterest} particulièrement fascinant !`;
     }
-
-    // Réponses génériques améliorées
-    responses.push(this.generateAdvancedResponse(input));
-
-    return responses;
+    
+    return baseResponse;
   }
 
-  private generateFollowUp(input: string): string {
-    const followUps = [
-      "voici une perspective complémentaire intéressante.",
-      "cela ouvre de nouvelles possibilités à explorer.",
-      "c'est effectivement un point important à considérer.",
-      "voici comment on peut approfondir cette idée."
-    ];
-    return followUps[Math.floor(Math.random() * followUps.length)];
+  private generateWarmResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Je sens que c'est important pour vous, et j'aimerais vraiment vous aider à explorer cette question ensemble.`;
   }
 
-  private generateInterestBasedResponse(input: string, interest: string): string {
-    const interestResponses: Record<string, string[]> = {
-      'technologie': [
-        "L'évolution technologique dans ce domaine est fascinante.",
-        "C'est un secteur qui évolue très rapidement ces dernières années.",
-        "Les innovations récentes dans ce domaine sont impressionnantes."
-      ],
-      'art': [
-        "L'art est un moyen d'expression unique et personnel.",
-        "Chaque forme d'art apporte sa propre richesse culturelle.",
-        "L'interprétation artistique est toujours subjective et enrichissante."
-      ]
-    };
-
-    const responses = interestResponses[interest] || ["C'est un sujet passionnant !"];
-    return responses[Math.floor(Math.random() * responses.length)];
+  private generateAnalyticalResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Pour bien comprendre votre question, laissez-moi la décomposer et examiner les différents aspects impliqués.`;
   }
 
-  private generateAdvancedResponse(input: string): string {
-    const advancedResponses = [
-      "Basé sur mon analyse, voici une approche structurée pour aborder cette question :",
-      "En considérant différents angles d'approche, je pense que :",
-      "D'après les meilleures pratiques dans ce domaine, voici ce que je recommande :",
-      "En synthétisant les informations disponibles, voici ma perspective :"
-    ];
-
-    const contextualInfo = [
-      "Cette approche s'est révélée efficace dans des situations similaires.",
-      "Les retours d'expérience montrent que cette méthode donne de bons résultats.",
-      "Cette stratégie permet généralement d'obtenir des résultats satisfaisants.",
-      "Cette approche équilibrée prend en compte les différents aspects du problème."
-    ];
-
-    const intro = advancedResponses[Math.floor(Math.random() * advancedResponses.length)];
-    const context = contextualInfo[Math.floor(Math.random() * contextualInfo.length)];
-
-    return `${intro} ${context}`;
+  private generateCreativeResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Votre question m'inspire plusieurs approches innovantes que nous pourrions explorer !`;
   }
 
-  private selectBestResponse(responses: string[], input: string): string {
-    // Pour cette version, on prend la première réponse contextuelle
-    // Dans une version plus avancée, on pourrait utiliser un scoring plus sophistiqué
-    return responses[0] || "Je comprends votre question et voici ma réflexion sur le sujet.";
+  private generateSupportiveResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Votre question montre une réelle réflexion, et je veux m'assurer de vous donner une réponse qui vous sera vraiment utile.`;
+  }
+
+  private generateEnthusiasticResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Votre question ouvre tellement de possibilités excitantes à explorer ! Plongeons-nous dedans !`;
+  }
+
+  private generatePeacefulResponse(input: string, speechPattern: string): string {
+    return `${speechPattern} Votre question mérite une réponse réfléchie et équilibrée. Permettez-moi de partager ma vision sereine sur ce sujet.`;
   }
 
   public interrupt(): boolean {

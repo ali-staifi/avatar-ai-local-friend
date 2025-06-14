@@ -10,4 +10,5 @@ export interface ChatInterfaceProps {
   onListeningChange: (listening: boolean) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking' | 'listening') => void;
+  onPersonalityChange?: (personality: string) => void;
 }
