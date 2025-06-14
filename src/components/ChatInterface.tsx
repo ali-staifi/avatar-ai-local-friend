@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
-import { generateResponse } from '@/utils/messageGenerator';
+import { useDiscussionEngine } from '@/hooks/useDiscussionEngine';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
@@ -18,13 +18,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Bonjour ! Je suis votre assistant avatar AI local. Comment puis-je vous aider aujourd\'hui ?',
+      text: 'Bonjour ! Je suis votre assistant avatar AI local avec mémoire conversationnelle avancée. Comment puis-je vous aider aujourd\'hui ?',
       isUser: false,
       timestamp: new Date()
     }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
+
+  // Utiliser le nouveau moteur de discussion
+  const {
+    engineState,
+    memoryStats,
+    processMessage,
+    interrupt,
+    resetConversation,
+    getConversationExport
+  } = useDiscussionEngine();
 
   const handleSpeechResult = useCallback((transcript: string) => {
     setInputText(transcript);
@@ -35,6 +44,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
+  // Gestion de l'interruption pendant la synthèse vocale
+  useEffect(() => {
+    if (isListening && (isSpeaking || engineState.isProcessing)) {
+      console.log('🔄 Interruption détectée - arrêt de la synthèse vocale');
+      window.speechSynthesis.cancel();
+      interrupt();
+    }
+  }, [isListening, isSpeaking, engineState.isProcessing, interrupt]);
+
   // Update parent component when states change
   useEffect(() => {
     onListeningChange(isListening);
@@ -43,6 +61,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     onSpeakingChange(isSpeaking);
   }, [isSpeaking, onSpeakingChange]);
+
+  useEffect(() => {
+    onEmotionChange(engineState.emotionalState);
+  }, [engineState.emotionalState, onEmotionChange]);
 
   const handleSendMessage = useCallback(async (text?: string) => {
     const messageText = text || inputText.trim();
@@ -58,15 +80,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
 
-    // Générer la réponse de l'IA
+    // Utiliser le moteur de discussion avancé
     try {
-      setIsThinking(true);
-      onEmotionChange('thinking');
-      
-      const response = await generateResponse(messageText);
-      
-      setIsThinking(false);
-      onEmotionChange('happy');
+      console.log('🎯 Envoi du message au moteur de discussion');
+      const response = await processMessage(messageText);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -77,7 +94,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       setMessages(prev => [...prev, aiMessage]);
       
-      // Synthèse vocale de la réponse
+      // Synthèse vocale de la réponse avec gestion d'interruption
       if (speechEnabled) {
         speak(
           response,
@@ -87,30 +104,62 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             onEmotionChange('neutral');
           }
         );
-      } else {
-        onEmotionChange('neutral');
       }
     } catch (error) {
-      setIsThinking(false);
-      onEmotionChange('neutral');
-      console.error('Erreur lors de la génération de la réponse:', error);
+      console.error('❌ Erreur lors du traitement du message:', error);
       toast.error("Erreur", {
-        description: "Impossible de générer une réponse. Veuillez réessayer."
+        description: "Impossible de traiter votre message. Veuillez réessayer."
       });
     }
-  }, [inputText, speechEnabled, speak, onSpeakingChange, onEmotionChange]);
+  }, [inputText, speechEnabled, speak, onSpeakingChange, onEmotionChange, processMessage]);
+
+  const handleResetConversation = useCallback(() => {
+    resetConversation();
+    setMessages([
+      {
+        id: Date.now().toString(),
+        text: 'Conversation réinitialisée ! Je suis prêt pour une nouvelle discussion.',
+        isUser: false,
+        timestamp: new Date()
+      }
+    ]);
+    toast.success("Conversation réinitialisée", {
+      description: "La mémoire conversationnelle a été effacée."
+    });
+  }, [resetConversation]);
+
+  const handleExportConversation = useCallback(() => {
+    const exportData = getConversationExport();
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `conversation_${exportData.conversationId}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    toast.success("Conversation exportée", {
+      description: "Le fichier de conversation a été téléchargé."
+    });
+  }, [getConversationExport]);
 
   return (
     <Card className="h-full flex flex-col">
       <ChatHeader 
         speechEnabled={speechEnabled}
         onToggleSpeech={setSpeechEnabled}
+        onResetConversation={handleResetConversation}
+        onExportConversation={handleExportConversation}
+        memoryStats={memoryStats}
+        engineState={engineState}
       />
       
       <CardContent className="flex-1 flex flex-col gap-4">
         <MessageList 
           messages={messages}
-          isThinking={isThinking}
+          isThinking={engineState.isProcessing}
         />
 
         <ChatInput
@@ -120,6 +169,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           onToggleListening={toggleListening}
           isListening={isListening}
           isSpeaking={isSpeaking}
+          canBeInterrupted={engineState.canBeInterrupted}
         />
       </CardContent>
     </Card>

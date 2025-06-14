@@ -18,15 +18,17 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-            Avatar AI Local - Version PC
+            Avatar AI Local - Moteur de Discussion Avancé
           </h1>
           <p className="text-lg text-muted-foreground mb-4">
-            Assistant avatar 3D avec IA conversationnelle, reconnaissance vocale et synthèse vocale
+            Assistant avatar 3D avec IA conversationnelle, mémoire contextuelle et gestion d'interruption intelligente
           </p>
           <div className="flex justify-center gap-2 flex-wrap">
             <Badge variant="secondary">🎤 Reconnaissance Vocale</Badge>
             <Badge variant="secondary">🔊 Synthèse Vocale</Badge>
-            <Badge variant="secondary">🤖 IA Locale</Badge>
+            <Badge variant="secondary">🧠 Moteur Discussion Avancé</Badge>
+            <Badge variant="secondary">💭 Mémoire Conversationnelle</Badge>
+            <Badge variant="secondary">🔄 Gestion Interruption</Badge>
             <Badge variant="secondary">🎮 Avatar 3D</Badge>
             <Badge variant="secondary">🔒 100% Privé</Badge>
           </div>
@@ -74,8 +76,8 @@ const Index = () => {
                     <span className="capitalize text-purple-500">{emotion}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Modèles IA :</span>
-                    <span className="text-green-500">Locaux</span>
+                    <span>Moteur discussion :</span>
+                    <span className="text-green-500">Avancé</span>
                   </div>
                 </div>
               </div>
@@ -94,36 +96,36 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🎯 Fonctionnalités</h3>
+              <h3 className="font-semibold mb-2">🧠 Moteur de Discussion</h3>
               <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Chat conversationnel intelligent</li>
-                <li>• Reconnaissance vocale en temps réel</li>
-                <li>• Synthèse vocale naturelle</li>
-                <li>• Avatar 3D animé et expressif</li>
+                <li>• Mémoire conversationnelle contextuelle</li>
+                <li>• Gestion intelligente des interruptions</li>
+                <li>• Apprentissage des préférences utilisateur</li>
+                <li>• Réponses adaptées au contexte</li>
               </ul>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🔒 Confidentialité</h3>
+              <h3 className="font-semibold mb-2">🔄 Fonctionnalités Avancées</h3>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Interruption vocale intelligente</li>
+                <li>• Export de conversations</li>
+                <li>• Suivi des intérêts utilisateur</li>
+                <li>• États émotionnels dynamiques</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-2">🔒 Confidentialité Totale</h3>
               <ul className="text-sm space-y-1 text-muted-foreground">
                 <li>• Traitement 100% local</li>
                 <li>• Aucune donnée envoyée en ligne</li>
-                <li>• Modèles IA embarqués</li>
-                <li>• Respect total de la vie privée</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">⚡ Performance</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Réponses en temps réel</li>
-                <li>• Optimisé pour navigateurs modernes</li>
-                <li>• Rendu 3D fluide</li>
-                <li>• Interface réactive</li>
+                <li>• Mémoire stockée localement</li>
+                <li>• Respect absolu de la vie privée</li>
               </ul>
             </CardContent>
           </Card>
