@@ -40,6 +40,7 @@ interface ChatHeaderProps {
   speechEngine?: string;
   speechLanguage?: string;
   speechEngineStatus?: 'ready' | 'loading' | 'error';
+  vadSupported?: boolean;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -54,7 +55,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   showEngineSelector,
   speechEngine = 'web-speech',
   speechLanguage = 'fr',
-  speechEngineStatus = 'ready'
+  speechEngineStatus = 'ready',
+  vadSupported = false
 }) => {
   const [showStats, setShowStats] = useState(false);
 

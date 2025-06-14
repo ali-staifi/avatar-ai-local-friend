@@ -1,16 +1,19 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
-import { useHybridSpeechRecognition, SpeechEngine, SupportedLanguage } from '@/hooks/useHybridSpeechRecognition';
+import { useHybridSpeechRecognition } from '@/hooks/useHybridSpeechRecognition';
 import { useDiscussionEngine } from '@/hooks/useDiscussionEngine';
+import { useChatState } from '@/hooks/useChatState';
+import { useChatSpeechConfig } from '@/hooks/useChatSpeechConfig';
+import { useChatMessageHandler } from '@/hooks/useChatMessageHandler';
+import { useChatActions } from '@/hooks/useChatActions';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { SpeechEngineSelector } from '@/components/speech/SpeechEngineSelector';
-import { Message, ChatInterfaceProps } from '@/types/chat';
+import { ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
-import { toast } from 'sonner';
 
 interface ExtendedChatInterfaceProps extends ChatInterfaceProps {
   currentPersonality?: PersonalityId;
@@ -23,27 +26,21 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   onPersonalityChange,
   currentPersonality = 'friendly'
 }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Bonjour ! Je suis votre assistant avatar AI avec reconnaissance vocale hybride (Web Speech + Vosk offline) et support multilingue français/arabe. Comment puis-je vous aider aujourd\'hui ?',
-      isUser: false,
-      timestamp: new Date()
-    }
-  ]);
-  const [inputText, setInputText] = useState('');
-  const [showEngineSelector, setShowEngineSelector] = useState(false);
+  // Chat state management
+  const {
+    messages,
+    inputText,
+    setInputText,
+    showEngineSelector,
+    addMessage,
+    resetMessages,
+    toggleEngineSelector
+  } = useChatState();
 
-  // Configuration initiale du moteur hybride
-  const [speechConfig, setSpeechConfig] = useState<{
-    engine: SpeechEngine;
-    language: SupportedLanguage;
-  }>({
-    engine: 'web-speech',
-    language: 'fr'
-  });
+  // Speech configuration
+  const { speechConfig, updateSpeechConfig } = useChatSpeechConfig();
 
-  // Utiliser le nouveau moteur de discussion avec personnalité
+  // Discussion engine
   const {
     engineState,
     memoryStats,
@@ -55,7 +52,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     getCurrentPersonality
   } = useDiscussionEngine(currentPersonality);
 
-  // Mettre à jour la personnalité quand elle change
+  // Update personality when it changes
   useEffect(() => {
     if (currentPersonality) {
       changePersonality(currentPersonality);
@@ -68,7 +65,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     handleSendMessage(transcript);
   }, [speechConfig]);
 
-  // Utiliser le hook hybride avec VAD
+  // Hybrid speech recognition
   const {
     isListening,
     toggleListening,
@@ -86,12 +83,35 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   } = useHybridSpeechRecognition(handleSpeechResult, {
     engine: speechConfig.engine,
     language: speechConfig.language,
-    vadEnabled: true // Activer VAD par défaut
+    vadEnabled: true
   });
 
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
-  // Gestion de l'interruption pendant la synthèse vocale
+  // Message handling
+  const { handleSendMessage } = useChatMessageHandler({
+    addMessage,
+    setInputText,
+    processMessage,
+    speechEnabled,
+    speak,
+    onSpeakingChange,
+    onEmotionChange
+  });
+
+  // Chat actions
+  const { handleResetConversation, handleExportConversation } = useChatActions({
+    resetConversation,
+    getConversationExport,
+    getCurrentPersonality,
+    resetMessages,
+    currentPersonality,
+    currentLanguage,
+    currentEngine,
+    engineInfo
+  });
+
+  // Interruption handling during speech synthesis
   useEffect(() => {
     if (isListening && (isSpeaking || engineState.isProcessing)) {
       console.log('🔄 Interruption détectée - arrêt de la synthèse vocale');
@@ -100,10 +120,10 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     }
   }, [isListening, isSpeaking, engineState.isProcessing, interrupt]);
 
-  // Synchroniser les états
+  // Synchronize speech config
   useEffect(() => {
-    setSpeechConfig({ engine: currentEngine, language: currentLanguage });
-  }, [currentEngine, currentLanguage]);
+    updateSpeechConfig(currentEngine, currentLanguage);
+  }, [currentEngine, currentLanguage, updateSpeechConfig]);
 
   // Update parent component when states change
   useEffect(() => {
@@ -118,96 +138,12 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     onEmotionChange(engineState.emotionalState);
   }, [engineState.emotionalState, onEmotionChange]);
 
-  const handleSendMessage = useCallback(async (text?: string) => {
-    const messageText = text || inputText.trim();
-    if (!messageText) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: messageText,
-      isUser: true,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
-
-    // Utiliser le moteur de discussion avancé avec personnalité
-    try {
-      console.log('🎯 Envoi du message au moteur de discussion avec personnalité:', getCurrentPersonality().name);
-      const response = await processMessage(messageText);
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response,
-        isUser: false,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Synthèse vocale de la réponse avec gestion d'interruption
-      if (speechEnabled) {
-        speak(
-          response,
-          () => onSpeakingChange(true),
-          () => {
-            onSpeakingChange(false);
-            onEmotionChange('neutral');
-          }
-        );
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors du traitement du message:', error);
-      toast.error("Erreur", {
-        description: "Impossible de traiter votre message. Veuillez réessayer."
-      });
-    }
-  }, [inputText, speechEnabled, speak, onSpeakingChange, onEmotionChange, processMessage, getCurrentPersonality]);
-
-  const handleResetConversation = useCallback(() => {
-    resetConversation(currentPersonality);
-    const personality = getCurrentPersonality();
-    setMessages([
-      {
-        id: Date.now().toString(),
-        text: `Conversation réinitialisée avec la personnalité ${personality.name} ! ${personality.speechPattern[0]} Je suis prêt pour une nouvelle discussion en ${currentLanguage === 'fr' ? 'français' : 'arabe'}.`,
-        isUser: false,
-        timestamp: new Date()
-      }
-    ]);
-    toast.success("Conversation réinitialisée", {
-      description: `Nouvelle conversation avec ${personality.name} en ${currentLanguage === 'fr' ? 'français' : 'arabe'}.`
-    });
-  }, [resetConversation, currentPersonality, getCurrentPersonality, currentLanguage]);
-
-  const handleExportConversation = useCallback(() => {
-    const exportData = {
-      ...getConversationExport(),
-      speechConfig: {
-        engine: currentEngine,
-        language: currentLanguage,
-        engineInfo
-      }
-    };
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `conversation_${exportData.conversationId}_${currentEngine}_${currentLanguage}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    toast.success("Conversation exportée", {
-      description: "Le fichier de conversation avec config vocale a été téléchargé."
-    });
-  }, [getConversationExport, currentEngine, currentLanguage, engineInfo]);
+  const handleSendMessageWrapper = useCallback(() => {
+    handleSendMessage(undefined, inputText);
+  }, [handleSendMessage, inputText]);
 
   return (
     <div className="space-y-4">
-      {/* Sélecteur de moteur de reconnaissance (collapsible) */}
       {showEngineSelector && (
         <SpeechEngineSelector
           currentEngine={currentEngine}
@@ -234,7 +170,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           memoryStats={memoryStats}
           engineState={engineState}
           currentPersonality={getCurrentPersonality()}
-          onToggleEngineSelector={() => setShowEngineSelector(!showEngineSelector)}
+          onToggleEngineSelector={toggleEngineSelector}
           showEngineSelector={showEngineSelector}
           speechEngine={currentEngine}
           speechLanguage={currentLanguage}
@@ -251,7 +187,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           <ChatInput
             inputText={inputText}
             setInputText={setInputText}
-            onSendMessage={() => handleSendMessage()}
+            onSendMessage={handleSendMessageWrapper}
             onToggleListening={toggleListening}
             isListening={isListening}
             isSpeaking={isSpeaking}

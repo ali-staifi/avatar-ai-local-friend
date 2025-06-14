@@ -60,7 +60,8 @@ export const useHybridSpeechRecognition = (
     interimResults: config.interimResults || false,
     onResult,
     onListeningChange: (listening) => {
-      listeningManager.setIsListening(listening);
+      // Use setIsListening directly since listeningManager is defined below
+      setIsListening(listening);
       if (!listening && vadEnabled && vadListening) {
         stopVAD();
       }
@@ -70,11 +71,16 @@ export const useHybridSpeechRecognition = (
   const voskEngine = useVoskEngine({
     language: currentLanguage,
     onResult,
-    onListeningChange: listeningManager.setIsListening,
+    onListeningChange: (listening) => {
+      // Use setIsListening directly since listeningManager is defined below
+      setIsListening(listening);
+    },
     vadEnabled
   });
 
-  // Listening management
+  // Listening management - define setIsListening first
+  const [isListening, setIsListening] = useState(false);
+  
   const listeningManager = useSpeechListeningManager({
     currentEngine,
     engineStatus,
@@ -86,6 +92,11 @@ export const useHybridSpeechRecognition = (
     startVAD,
     stopVAD
   });
+
+  // Update listening state when listeningManager changes
+  useEffect(() => {
+    setIsListening(listeningManager.isListening);
+  }, [listeningManager.isListening]);
 
   // Engine info provider
   const { getEngineInfo } = useEngineInfoProvider({
@@ -116,31 +127,31 @@ export const useHybridSpeechRecognition = (
   }, [currentEngine, voskEngine.initializeVosk]);
 
   const handleEngineSwitch = useCallback((engine: SpeechEngine) => {
-    if (listeningManager.isListening) {
+    if (isListening) {
       listeningManager.stopListening();
     }
     switchEngine(engine);
-  }, [listeningManager.isListening, listeningManager.stopListening, switchEngine]);
+  }, [isListening, listeningManager.stopListening, switchEngine]);
 
   const handleLanguageSwitch = useCallback((language: SupportedLanguage) => {
-    if (listeningManager.isListening) {
+    if (isListening) {
       listeningManager.stopListening();
     }
     switchLanguage(language);
-  }, [listeningManager.isListening, listeningManager.stopListening, switchLanguage]);
+  }, [isListening, listeningManager.stopListening, switchLanguage]);
 
   const handleVADToggle = useCallback(() => {
-    if (listeningManager.isListening) {
+    if (isListening) {
       toast.warning("Arrêtez l'écoute d'abord", {
         description: "Impossible de changer VAD pendant l'écoute"
       });
       return;
     }
     toggleVAD();
-  }, [listeningManager.isListening, toggleVAD]);
+  }, [isListening, toggleVAD]);
 
   return {
-    isListening: listeningManager.isListening,
+    isListening,
     toggleListening: listeningManager.toggleListening,
     currentEngine,
     currentLanguage,
