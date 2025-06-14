@@ -67,7 +67,7 @@ export class DiscussionEngine {
     // Initialiser les nouveaux services avec le genre
     this.intentRecognition = new IntentRecognition();
     this.dialogueManager = new DialogueManager(this.currentPersonality, gender);
-    this.responseEnhancer = new ResponseEnhancer(this.currentPersonality, gender);
+    this.responseEnhancer = new ResponseEnhancer(this.currentPersonality);
 
     console.log(`🚀 Moteur de discussion avancé initialisé avec genre: ${gender}`);
   }
@@ -75,7 +75,7 @@ export class DiscussionEngine {
   public setGender(gender: Gender) {
     this.currentGender = gender;
     this.dialogueManager.setGender(gender);
-    this.responseEnhancer.setGender(gender);
+    // Note: ResponseEnhancer ne prend pas le genre pour l'instant
     console.log(`👤 Genre du moteur mis à jour: ${gender}`);
   }
 

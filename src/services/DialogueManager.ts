@@ -1,6 +1,6 @@
-
 import { Intent, Entity } from './IntentRecognition';
 import { PersonalityTrait, PersonalityId } from '@/types/personality';
+import { Gender } from '@/types/gender';
 
 export interface DialogueState {
   currentTopic?: string;
@@ -26,9 +26,11 @@ export interface DialogueResponse {
 export class DialogueManager {
   private state: DialogueState;
   private currentPersonality: PersonalityTrait;
+  private currentGender: Gender;
 
-  constructor(personality: PersonalityTrait) {
+  constructor(personality: PersonalityTrait, gender: Gender = 'male') {
     this.currentPersonality = personality;
+    this.currentGender = gender;
     this.state = {
       context: new Map(),
       conversationFlow: [],
@@ -46,17 +48,22 @@ export class DialogueManager {
     console.log(`🎭 Gestionnaire de dialogue mis à jour avec la personnalité: ${personality.name}`);
   }
 
+  public setGender(gender: Gender): void {
+    this.currentGender = gender;
+    console.log(`👤 Genre du gestionnaire de dialogue mis à jour: ${gender}`);
+  }
+
   public processDialogue(intent: Intent, userInput: string): DialogueResponse {
     // Mettre à jour l'état du dialogue
     this.updateDialogueState(intent, userInput);
     
-    // Générer une réponse contextuelle
+    // Générer une réponse contextuelle avec le genre
     const response = this.generateContextualResponse(intent, userInput);
     
     // Générer des suggestions de suivi
     const followUpSuggestions = this.generateFollowUpSuggestions(response);
     
-    console.log(`💬 Réponse du gestionnaire de dialogue:`, {
+    console.log(`💬 Réponse du gestionnaire de dialogue (${this.currentGender}):`, {
       intent: intent.name,
       confidence: intent.confidence,
       followUps: followUpSuggestions.length
@@ -162,34 +169,48 @@ export class DialogueManager {
       Math.floor(Math.random() * personality.speechPattern.length)
     ];
 
+    // Adapter les réponses selon le genre
+    const genderAwareResponse = this.adaptResponseForGender(basePattern);
+
     switch (intent.name) {
       case 'greeting':
-        return this.generateGreetingResponse(basePattern);
+        return this.generateGreetingResponse(genderAwareResponse);
       
       case 'question':
-        return this.generateQuestionResponse(basePattern, userInput);
+        return this.generateQuestionResponse(genderAwareResponse, userInput);
       
       case 'explanation_request':
-        return this.generateExplanationResponse(basePattern, userInput);
+        return this.generateExplanationResponse(genderAwareResponse, userInput);
       
       case 'opinion_request':
-        return this.generateOpinionResponse(basePattern, userInput);
+        return this.generateOpinionResponse(genderAwareResponse, userInput);
       
       case 'help_request':
-        return this.generateHelpResponse(basePattern, userInput);
+        return this.generateHelpResponse(genderAwareResponse, userInput);
       
       case 'personal_info':
-        return this.generatePersonalInfoResponse(basePattern);
+        return this.generatePersonalInfoResponse(genderAwareResponse);
       
       case 'capability_inquiry':
-        return this.generateCapabilityResponse(basePattern);
+        return this.generateCapabilityResponse(genderAwareResponse);
       
       case 'goodbye':
-        return this.generateGoodbyeResponse(basePattern);
+        return this.generateGoodbyeResponse(genderAwareResponse);
       
       default:
-        return this.generateDefaultResponse(basePattern, userInput);
+        return this.generateDefaultResponse(genderAwareResponse, userInput);
     }
+  }
+
+  private adaptResponseForGender(basePattern: string): string {
+    // Adapter les formulations selon le genre
+    if (this.currentGender === 'female') {
+      return basePattern.replace(/je suis/gi, 'je suis')
+        .replace(/ravi/gi, 'ravie')
+        .replace(/heureux/gi, 'heureuse')
+        .replace(/content/gi, 'contente');
+    }
+    return basePattern;
   }
 
   private generateGreetingResponse(basePattern: string): string {

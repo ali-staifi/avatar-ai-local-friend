@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { PersonalityId } from '@/types/personality';
 import { SupportedLanguage } from '@/types/speechRecognition';
@@ -42,7 +43,7 @@ export const useDiscussionEngine = (
       const response = responseGeneratorRef.current.generateResponse({
         language,
         userInput: text,
-        gender
+        personalityId: 'friendly' // On peut passer la personnalité actuelle ici
       });
       
       console.log(`✅ Réponse générée en ${language} pour ${gender}: "${response}"`);
