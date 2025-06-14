@@ -46,7 +46,14 @@ export const useWebSpeechEngine = ({
       };
 
       recognition.onerror = (error: any) => {
-        console.error('❌ Erreur Web Speech:', error);
+        console.error('❌ Erreur Web Speech complète:', {
+          error: error.error,
+          message: error.message,
+          type: error.type,
+          isTrusted: error.isTrusted,
+          language: recognition.lang,
+          timestamp: new Date().toISOString()
+        });
         onListeningChange(false);
         
         if (error.error === 'no-speech') {
@@ -61,55 +68,75 @@ export const useWebSpeechEngine = ({
           toast.error("Langue non supportée", {
             description: `${language === 'ar' ? 'L\'arabe' : 'Le français'} n'est pas supporté par votre navigateur. Essayez Vosk.`
           });
+        } else if (error.error === 'network') {
+          toast.error("Erreur réseau", {
+            description: `Connexion internet requise pour Web Speech en ${language === 'ar' ? 'arabe' : 'français'}. Essayez Vosk offline.`
+          });
+        } else if (error.error === 'aborted') {
+          console.log('🛑 Web Speech interrompu volontairement');
         } else {
-          toast.error("Erreur de reconnaissance vocale", {
-            description: `Impossible de capturer l'audio en ${language === 'ar' ? 'arabe' : 'français'}. Essayez Vosk avec VAD.`
+          toast.error(`Erreur Web Speech (${error.error || 'inconnue'})`, {
+            description: `Problème avec ${language === 'ar' ? 'l\'arabe' : 'le français'}. Essayez Vosk + VAD pour une meilleure compatibilité.`
           });
         }
       };
 
       recognition.onend = () => {
-        console.log('🛑 Web Speech terminé');
+        console.log(`🛑 Web Speech terminé (langue: ${recognition.lang})`);
         onListeningChange(false);
       };
 
       recognition.onstart = () => {
-        console.log(`🎤 Web Speech démarré en ${language === 'ar' ? 'arabe' : 'français'}`);
+        console.log(`🎤 Web Speech démarré en ${language === 'ar' ? 'arabe (ar-SA)' : 'français (fr-FR)'}`);
       };
+    } else {
+      console.error('❌ Web Speech API non supporté dans ce navigateur');
     }
   }, [language, continuous, interimResults, onResult, onListeningChange]);
 
   const startListening = useCallback(() => {
     if (webSpeechRef.current) {
       try {
+        console.log(`🎤 Tentative de démarrage Web Speech en ${language} (${webSpeechRef.current.lang})`);
         webSpeechRef.current.start();
         onListeningChange(true);
-        console.log(`🎤 Web Speech démarré en ${language}`);
         
         if (language === 'ar') {
           toast.info("Reconnaissance vocale arabe", {
-            description: "Parlez clairement en arabe. Si ça ne fonctionne pas, utilisez Vosk + VAD."
+            description: "Parlez clairement en arabe. Support navigateur variable - Vosk + VAD recommandé."
           });
         }
         
         return true;
       } catch (error) {
-        console.error('Erreur démarrage Web Speech:', error);
+        console.error('❌ Erreur démarrage Web Speech:', {
+          error,
+          language,
+          navigatorLanguage: navigator.language,
+          timestamp: new Date().toISOString()
+        });
         toast.error("Erreur démarrage", {
-          description: `Impossible de démarrer Web Speech en ${language === 'ar' ? 'arabe' : 'français'}. Essayez Vosk avec VAD.`
+          description: `Impossible de démarrer Web Speech en ${language === 'ar' ? 'arabe' : 'français'}. Essayez Vosk + VAD.`
         });
         return false;
       }
+    } else {
+      console.error('❌ Web Speech non initialisé');
+      return false;
     }
-    return false;
   }, [language, onListeningChange]);
 
   const stopListening = useCallback(() => {
     if (webSpeechRef.current) {
-      webSpeechRef.current.stop();
+      try {
+        webSpeechRef.current.stop();
+        console.log(`🛑 Web Speech arrêté manuellement (langue: ${language})`);
+      } catch (error) {
+        console.error('❌ Erreur arrêt Web Speech:', error);
+      }
     }
     onListeningChange(false);
-  }, [onListeningChange]);
+  }, [language, onListeningChange]);
 
   const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 
