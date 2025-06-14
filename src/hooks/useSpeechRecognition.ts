@@ -1,6 +1,6 @@
 
 import { useRef, useEffect, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface SpeechRecognitionEvent {
   results: {
@@ -26,7 +26,6 @@ interface SpeechRecognitionInstance {
 export const useSpeechRecognition = (onResult: (transcript: string) => void) => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Initialiser la reconnaissance vocale
@@ -45,10 +44,8 @@ export const useSpeechRecognition = (onResult: (transcript: string) => void) => 
 
       recognitionRef.current.onerror = () => {
         setIsListening(false);
-        toast({
-          title: "Erreur de reconnaissance vocale",
-          description: "Impossible de capturer l'audio. Veuillez réessayer.",
-          variant: "destructive"
+        toast.error("Erreur de reconnaissance vocale", {
+          description: "Impossible de capturer l'audio. Veuillez réessayer."
         });
       };
 
@@ -56,14 +53,12 @@ export const useSpeechRecognition = (onResult: (transcript: string) => void) => 
         setIsListening(false);
       };
     }
-  }, [onResult, toast]);
+  }, [onResult]);
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      toast({
-        title: "Reconnaissance vocale non supportée",
-        description: "Votre navigateur ne supporte pas la reconnaissance vocale.",
-        variant: "destructive"
+      toast.error("Reconnaissance vocale non supportée", {
+        description: "Votre navigateur ne supporte pas la reconnaissance vocale."
       });
       return;
     }

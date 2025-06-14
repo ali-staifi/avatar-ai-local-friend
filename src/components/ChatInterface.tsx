@@ -1,7 +1,6 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { generateResponse } from '@/utils/messageGenerator';
@@ -9,6 +8,7 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { Message, ChatInterfaceProps } from '@/types/chat';
+import { toast } from 'sonner';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onListeningChange,
@@ -25,10 +25,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ]);
   const [inputText, setInputText] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  
-  const { toast } = useToast();
 
   const handleSpeechResult = useCallback((transcript: string) => {
+    setInputText(transcript);
     handleSendMessage(transcript);
   }, []);
 
@@ -37,15 +36,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
   // Update parent component when states change
-  React.useEffect(() => {
+  useEffect(() => {
     onListeningChange(isListening);
   }, [isListening, onListeningChange]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     onSpeakingChange(isSpeaking);
   }, [isSpeaking, onSpeakingChange]);
 
-  const handleSendMessage = async (text?: string) => {
+  const handleSendMessage = useCallback(async (text?: string) => {
     const messageText = text || inputText.trim();
     if (!messageText) return;
 
@@ -88,17 +87,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             onEmotionChange('neutral');
           }
         );
+      } else {
+        onEmotionChange('neutral');
       }
     } catch (error) {
       setIsThinking(false);
       onEmotionChange('neutral');
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer une réponse. Veuillez réessayer.",
-        variant: "destructive"
+      console.error('Erreur lors de la génération de la réponse:', error);
+      toast.error("Erreur", {
+        description: "Impossible de générer une réponse. Veuillez réessayer."
       });
     }
-  };
+  }, [inputText, speechEnabled, speak, onSpeakingChange, onEmotionChange]);
 
   return (
     <Card className="h-full flex flex-col">

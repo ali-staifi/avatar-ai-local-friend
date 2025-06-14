@@ -12,7 +12,6 @@ interface AvatarProps {
 
 function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [scale, setScale] = useState(1);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -22,14 +21,12 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
       // Animation pour l'écoute
       if (isListening) {
         meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 3) * 0.1;
-        setScale(1.1);
+        meshRef.current.scale.setScalar(breathe * 1.1);
       } else if (isSpeaking) {
         // Animation pour parler
         meshRef.current.scale.setScalar(breathe * 1.05);
-        setScale(1.05);
       } else {
         meshRef.current.scale.setScalar(breathe);
-        setScale(1);
       }
     }
   });
