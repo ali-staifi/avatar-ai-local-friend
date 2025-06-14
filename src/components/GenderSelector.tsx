@@ -4,33 +4,60 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Gender, GenderOption } from '@/types/gender';
+import { SupportedLanguage } from '@/types/speechRecognition';
 
 interface GenderSelectorProps {
   currentGender: Gender;
   onGenderChange: (gender: Gender) => void;
+  currentLanguage: SupportedLanguage;
 }
 
 export const GenderSelector: React.FC<GenderSelectorProps> = ({
   currentGender,
-  onGenderChange
+  onGenderChange,
+  currentLanguage
 }) => {
-  const genderOptions: GenderOption[] = [
-    {
-      value: 'male',
-      label: 'Homme',
-      emoji: '👨'
-    },
-    {
-      value: 'female',
-      label: 'Femme',
-      emoji: '👩'
+  const getGenderOptions = (language: SupportedLanguage): GenderOption[] => {
+    if (language === 'ar') {
+      return [
+        {
+          value: 'male',
+          label: 'رجل',
+          emoji: '👨'
+        },
+        {
+          value: 'female',
+          label: 'امرأة',
+          emoji: '👩'
+        }
+      ];
     }
-  ];
+    
+    // Français par défaut
+    return [
+      {
+        value: 'male',
+        label: 'Homme',
+        emoji: '👨'
+      },
+      {
+        value: 'female',
+        label: 'Femme',
+        emoji: '👩'
+      }
+    ];
+  };
+
+  const getTitle = (language: SupportedLanguage): string => {
+    return language === 'ar' ? 'جنس الصورة الرمزية' : 'Genre de l\'avatar';
+  };
+
+  const genderOptions = getGenderOptions(currentLanguage);
 
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Genre de l'avatar</CardTitle>
+        <CardTitle className="text-sm font-medium">{getTitle(currentLanguage)}</CardTitle>
       </CardHeader>
       <CardContent>
         <RadioGroup

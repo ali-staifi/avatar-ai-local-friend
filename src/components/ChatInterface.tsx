@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect } from 'react';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useHybridSpeechRecognition } from '@/hooks/useHybridSpeechRecognition';
@@ -11,17 +10,20 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatMainContent } from '@/components/chat/ChatMainContent';
 import { ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
+import { SupportedLanguage } from '@/types/speechRecognition';
 
 interface ExtendedChatInterfaceProps extends ChatInterfaceProps {
   currentPersonality?: PersonalityId;
+  onLanguageChange?: (language: SupportedLanguage) => void;
 }
 
 export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   onListeningChange,
   onSpeakingChange,
-  onEmotionChange,
+  onEmotionChange,  
   onPersonalityChange,
-  currentPersonality = 'friendly'
+  currentPersonality = 'friendly',
+  onLanguageChange
 }) => {
   // Chat state management
   const {
@@ -89,6 +91,11 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     vadEnabled: true
   });
 
+  // Synchronize language changes with parent component
+  useEffect(() => {
+    onLanguageChange?.(currentLanguage);
+  }, [currentLanguage, onLanguageChange]);
+
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak, updateLanguage } = useSpeechSynthesis();
 
   // Synchroniser la langue de synthèse vocale avec celle de reconnaissance
@@ -154,11 +161,16 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   const currentPersonalityData = getCurrentPersonality();
   const currentPersonalityId = currentPersonalityData.id;
 
+  const handleLanguageChange = useCallback((language: SupportedLanguage) => {
+    switchLanguage(language);
+    onLanguageChange?.(language);
+  }, [switchLanguage, onLanguageChange]);
+
   return (
     <div className="flex gap-4 h-full">
       <ChatSidebar
         currentLanguage={currentLanguage}
-        onLanguageChange={switchLanguage}
+        onLanguageChange={handleLanguageChange}
         isListening={isListening}
       />
 
@@ -177,7 +189,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
         currentEngine={currentEngine}
         currentLanguage={currentLanguage}
         onEngineChange={switchEngine}
-        onLanguageChange={switchLanguage}
+        onLanguageChange={handleLanguageChange}
         engineStatus={engineStatus}
         engineInfo={engineInfo}
         vadEnabled={vadEnabled}

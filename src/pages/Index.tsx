@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PersonalityId } from '@/types/personality';
 import { Gender } from '@/types/gender';
+import { SupportedLanguage } from '@/types/speechRecognition';
 
 const Index = () => {
   const [isListening, setIsListening] = useState(false);
@@ -15,8 +16,16 @@ const Index = () => {
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking' | 'listening'>('neutral');
   const [currentPersonality, setCurrentPersonality] = useState<PersonalityId>('friendly');
   const [currentGender, setCurrentGender] = useState<Gender>('male');
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>('fr');
 
-  console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality, currentGender });
+  console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality, currentGender, currentLanguage });
+
+  const getGenderDisplayText = (gender: Gender): string => {
+    if (currentLanguage === 'ar') {
+      return gender === 'male' ? 'رجل' : 'امرأة';
+    }
+    return gender === 'male' ? 'Homme' : 'Femme';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -53,6 +62,7 @@ const Index = () => {
           <GenderSelector
             currentGender={currentGender}
             onGenderChange={setCurrentGender}
+            currentLanguage={currentLanguage}
           />
         </div>
 
@@ -104,8 +114,8 @@ const Index = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Genre :</span>
-                    <span className="text-green-500 capitalize">
-                      {currentGender === 'male' ? 'Homme' : 'Femme'}
+                    <span className="text-green-500">
+                      {getGenderDisplayText(currentGender)}
                     </span>
                   </div>
                 </div>
@@ -120,6 +130,7 @@ const Index = () => {
             onEmotionChange={setEmotion}
             onPersonalityChange={setCurrentPersonality}
             currentPersonality={currentPersonality}
+            onLanguageChange={setCurrentLanguage}
           />
         </div>
 
