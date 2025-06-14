@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   CardHeader,
@@ -22,6 +23,8 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react"
+
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 interface ChatHeaderProps {
   speechEnabled: boolean;
@@ -58,7 +61,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const getSpeechEngineInfo = () => {
     const engineName = speechEngine === 'vosk' ? 'Vosk' : 'Web Speech';
     const langFlag = speechLanguage === 'fr' ? '🇫🇷' : '🇸🇦';
-    const statusColor = speechEngineStatus === 'ready' ? 'default' : 
+    const statusColor: BadgeVariant = speechEngineStatus === 'ready' ? 'default' : 
                        speechEngineStatus === 'loading' ? 'secondary' : 'destructive';
     
     return { engineName, langFlag, statusColor };
