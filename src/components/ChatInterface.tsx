@@ -139,7 +139,8 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     handleSendMessage(undefined, inputText);
   }, [handleSendMessage, inputText]);
 
-  const currentPersonalityId = getCurrentPersonality();
+  const currentPersonalityData = getCurrentPersonality();
+  const currentPersonalityId = currentPersonalityData.id;
 
   return (
     <div className="flex gap-4 h-full">
