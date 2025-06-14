@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { voskModelManager } from '@/services/VoskModelManager';
@@ -5,7 +6,9 @@ import { useVoiceActivityDetection } from './useVoiceActivityDetection';
 import { useWebSpeechEngine } from './useWebSpeechEngine';
 import { useVoskEngine } from './useVoskEngine';
 import { useSpeechEngineManager } from './useSpeechEngineManager';
-import { SpeechEngine, SupportedLanguage, HybridSpeechConfig, EngineInfo } from '@/types/speechRecognition';
+import { useSpeechListeningManager } from './useSpeechListeningManager';
+import { useEngineInfoProvider } from './useEngineInfoProvider';
+import type { SpeechEngine, SupportedLanguage, HybridSpeechConfig } from '@/types/speechRecognition';
 
 export type { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
 
@@ -13,7 +16,6 @@ export const useHybridSpeechRecognition = (
   onResult: (transcript: string) => void,
   config: HybridSpeechConfig = { engine: 'web-speech', language: 'fr', vadEnabled: true }
 ) => {
-  const [isListening, setIsListening] = useState(false);
   const [engineStatus, setEngineStatus] = useState<'ready' | 'loading' | 'error'>('ready');
   
   const {
@@ -59,7 +61,7 @@ export const useHybridSpeechRecognition = (
     interimResults: config.interimResults || false,
     onResult,
     onListeningChange: (listening) => {
-      setIsListening(listening);
+      listeningManager.setIsListening(listening);
       if (!listening && vadEnabled && vadListening) {
         stopVAD();
       }
@@ -69,8 +71,33 @@ export const useHybridSpeechRecognition = (
   const voskEngine = useVoskEngine({
     language: currentLanguage,
     onResult,
-    onListeningChange: setIsListening,
+    onListeningChange: listeningManager.setIsListening,
     vadEnabled
+  });
+
+  // Listening management
+  const listeningManager = useSpeechListeningManager({
+    currentEngine,
+    engineStatus,
+    webSpeechEngine,
+    voskEngine,
+    vadEnabled,
+    vadSupported,
+    vadListening,
+    startVAD,
+    stopVAD
+  });
+
+  // Engine info provider
+  const { getEngineInfo } = useEngineInfoProvider({
+    currentLanguage,
+    webSpeechSupported: webSpeechEngine.isSupported,
+    voskModelLoaded: voskEngine.isModelLoaded,
+    voskModelProgress: voskEngine.modelProgress,
+    vadSupported,
+    vadEnabled,
+    vadListening,
+    bufferStatus
   });
 
   // Update engine status based on current engine
@@ -89,119 +116,33 @@ export const useHybridSpeechRecognition = (
     }
   }, [currentEngine, voskEngine.initializeVosk]);
 
-  const startListening = useCallback(async () => {
-    if (currentEngine === 'web-speech') {
-      const success = webSpeechEngine.startListening();
-      if (success && vadEnabled && vadSupported && !vadListening) {
-        await startVAD();
-      }
-      return success;
-    } else if (currentEngine === 'vosk') {
-      const success = await voskEngine.startListening();
-      if (success && vadEnabled && vadSupported) {
-        const vadSuccess = await startVAD();
-        if (!vadSuccess) {
-          setIsListening(false);
-          return false;
-        }
-        toast.success("Vosk + VAD actif", {
-          description: "Parlez naturellement, les segments sont détectés automatiquement"
-        });
-      }
-      return success;
-    }
-    return false;
-  }, [currentEngine, webSpeechEngine, voskEngine, vadEnabled, vadSupported, vadListening, startVAD]);
-
-  const stopListening = useCallback(() => {
-    if (currentEngine === 'web-speech') {
-      webSpeechEngine.stopListening();
-    } else if (currentEngine === 'vosk') {
-      voskEngine.stopListening();
-    }
-    
-    if (vadEnabled && vadListening) {
-      stopVAD();
-    }
-    
-    setIsListening(false);
-    console.log(`🛑 ${currentEngine} ${vadEnabled ? '+ VAD' : ''} arrêté`);
-  }, [currentEngine, webSpeechEngine, voskEngine, vadEnabled, vadListening, stopVAD]);
-
-  const toggleListening = useCallback(() => {
-    if (engineStatus === 'loading') {
-      toast.warning("Moteur en cours de chargement", {
-        description: "Veuillez patienter..."
-      });
-      return;
-    }
-
-    if (engineStatus === 'error') {
-      toast.error("Moteur non disponible", {
-        description: "Changez de moteur ou rafraîchissez la page"
-      });
-      return;
-    }
-
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
-  }, [isListening, engineStatus, startListening, stopListening]);
-
   const handleEngineSwitch = useCallback((engine: SpeechEngine) => {
-    if (isListening) {
-      stopListening();
+    if (listeningManager.isListening) {
+      listeningManager.stopListening();
     }
     switchEngine(engine);
-  }, [isListening, stopListening, switchEngine]);
+  }, [listeningManager.isListening, listeningManager.stopListening, switchEngine]);
 
   const handleLanguageSwitch = useCallback((language: SupportedLanguage) => {
-    if (isListening) {
-      stopListening();
+    if (listeningManager.isListening) {
+      listeningManager.stopListening();
     }
     switchLanguage(language);
-  }, [isListening, stopListening, switchLanguage]);
+  }, [listeningManager.isListening, listeningManager.stopListening, switchLanguage]);
 
   const handleVADToggle = useCallback(() => {
-    if (isListening) {
+    if (listeningManager.isListening) {
       toast.warning("Arrêtez l'écoute d'abord", {
         description: "Impossible de changer VAD pendant l'écoute"
       });
       return;
     }
     toggleVAD();
-  }, [isListening, toggleVAD]);
-
-  const getEngineInfo = useCallback((): EngineInfo => {
-    const webSpeechSupported = webSpeechEngine.isSupported;
-    const voskModelLoaded = voskEngine.isModelLoaded;
-    
-    return {
-      webSpeech: {
-        supported: webSpeechSupported,
-        available: webSpeechSupported,
-        description: `Reconnaissance en ligne via le navigateur${vadEnabled ? ' + VAD' : ''}`
-      },
-      vosk: {
-        supported: true,
-        available: voskModelLoaded,
-        description: `Reconnaissance offline privée${vadEnabled ? ' + détection automatique' : ''}`,
-        modelProgress: voskEngine.modelProgress.find(p => p.language.includes(currentLanguage === 'fr' ? 'Français' : 'العربية'))
-      },
-      vad: {
-        supported: vadSupported,
-        enabled: vadEnabled,
-        status: vadListening ? 'listening' : 'ready',
-        bufferStatus
-      }
-    };
-  }, [currentLanguage, voskEngine.modelProgress, vadSupported, vadEnabled, vadListening, bufferStatus, webSpeechEngine.isSupported, voskEngine.isModelLoaded]);
+  }, [listeningManager.isListening, toggleVAD]);
 
   return {
-    isListening,
-    toggleListening,
+    isListening: listeningManager.isListening,
+    toggleListening: listeningManager.toggleListening,
     currentEngine,
     currentLanguage,
     switchEngine: handleEngineSwitch,
