@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
@@ -68,7 +67,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     handleSendMessage(transcript);
   }, [speechConfig]);
 
-  // Utiliser le hook hybride
+  // Utiliser le hook hybride avec VAD
   const {
     isListening,
     toggleListening,
@@ -77,10 +76,16 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     switchEngine,
     switchLanguage,
     engineStatus,
-    engineInfo
+    engineInfo,
+    vadEnabled,
+    toggleVAD,
+    vadSupported,
+    vadListening,
+    bufferStatus
   } = useHybridSpeechRecognition(handleSpeechResult, {
     engine: speechConfig.engine,
-    language: speechConfig.language
+    language: speechConfig.language,
+    vadEnabled: true // Activer VAD par défaut
   });
 
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
@@ -211,6 +216,12 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           engineInfo={engineInfo}
           isListening={isListening}
           engineStatus={engineStatus}
+          // Nouvelles props VAD
+          vadEnabled={vadEnabled}
+          onToggleVAD={toggleVAD}
+          vadSupported={vadSupported}
+          vadListening={vadListening}
+          bufferStatus={bufferStatus}
         />
       )}
 
@@ -223,12 +234,14 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           memoryStats={memoryStats}
           engineState={engineState}
           currentPersonality={getCurrentPersonality()}
-          // Nouvelles props pour le système hybride
+          // Props système hybride + VAD
           onToggleEngineSelector={() => setShowEngineSelector(!showEngineSelector)}
           showEngineSelector={showEngineSelector}
           speechEngine={currentEngine}
           speechLanguage={currentLanguage}
           speechEngineStatus={engineStatus}
+          vadEnabled={vadEnabled}
+          vadSupported={vadSupported}
         />
         
         <CardContent className="flex-1 flex flex-col gap-4">
@@ -248,6 +261,11 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
             currentEngine={currentEngine}
             engineStatus={engineStatus}
             currentLanguage={currentLanguage}
+            // Nouvelles props VAD
+            vadEnabled={vadEnabled}
+            vadSupported={vadSupported}
+            vadListening={vadListening}
+            bufferStatus={bufferStatus}
           />
         </CardContent>
       </Card>

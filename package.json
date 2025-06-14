@@ -63,6 +63,7 @@
     "three": "^0.155.0",
     "vaul": "^0.9.3",
     "vosk-browser": "^0.0.8",
+    "webrtcvad": "^1.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
