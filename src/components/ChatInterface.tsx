@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect } from 'react';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useHybridSpeechRecognition } from '@/hooks/useHybridSpeechRecognition';
@@ -37,17 +36,23 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   // Speech configuration
   const { speechConfig, updateSpeechConfig } = useChatSpeechConfig();
 
-  // Discussion engine
+  // Discussion engine with language support
   const {
     engineState,
     memoryStats,
-    processMessage,
+    processMessage: processMessageWithPersonality,
     interrupt,
     resetConversation,
     getConversationExport,
     changePersonality,
     getCurrentPersonality
   } = useDiscussionEngine(currentPersonality);
+
+  // Enhanced processMessage that includes language
+  const processMessage = useCallback(async (text: string, language?: 'fr' | 'ar') => {
+    console.log(`🧠 Traitement avec langue: ${language || 'auto'}`);
+    return await processMessageWithPersonality(text, language);
+  }, [processMessageWithPersonality]);
 
   // Update personality when it changes
   useEffect(() => {
@@ -85,7 +90,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
 
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
-  // Message handling
+  // Message handling with language support
   const { handleSendMessage } = useChatMessageHandler({
     addMessage,
     setInputText,
@@ -93,7 +98,8 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     speechEnabled,
     speak,
     onSpeakingChange,
-    onEmotionChange
+    onEmotionChange,
+    currentLanguage
   });
 
   // Chat actions

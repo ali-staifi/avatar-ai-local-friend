@@ -2,16 +2,18 @@
 import { useCallback } from 'react';
 import { Message } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
+import { SupportedLanguage } from '@/types/speechRecognition';
 import { toast } from 'sonner';
 
 interface UseChatMessageHandlerProps {
   addMessage: (message: Message) => void;
   setInputText: (text: string) => void;
-  processMessage: (text: string) => Promise<string>;
+  processMessage: (text: string, language?: SupportedLanguage) => Promise<string>;
   speechEnabled: boolean;
   speak: (text: string, onStart?: () => void, onEnd?: () => void) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking' | 'listening') => void;
+  currentLanguage: SupportedLanguage;
 }
 
 export const useChatMessageHandler = ({
@@ -21,11 +23,14 @@ export const useChatMessageHandler = ({
   speechEnabled,
   speak,
   onSpeakingChange,
-  onEmotionChange
+  onEmotionChange,
+  currentLanguage
 }: UseChatMessageHandlerProps) => {
   const handleSendMessage = useCallback(async (text?: string, inputText?: string) => {
     const messageText = text || inputText?.trim();
     if (!messageText) return;
+
+    console.log(`📝 Traitement du message en ${currentLanguage}: "${messageText}"`);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -37,9 +42,9 @@ export const useChatMessageHandler = ({
     addMessage(userMessage);
     setInputText('');
 
-    // Utiliser le moteur de discussion avancé avec personnalité
+    // Utiliser le moteur de discussion avancé avec la langue spécifiée
     try {
-      const response = await processMessage(messageText);
+      const response = await processMessage(messageText, currentLanguage);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -67,7 +72,7 @@ export const useChatMessageHandler = ({
         description: "Impossible de traiter votre message. Veuillez réessayer."
       });
     }
-  }, [addMessage, setInputText, processMessage, speechEnabled, speak, onSpeakingChange, onEmotionChange]);
+  }, [addMessage, setInputText, processMessage, speechEnabled, speak, onSpeakingChange, onEmotionChange, currentLanguage]);
 
   return { handleSendMessage };
 };

@@ -1,119 +1,107 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { DiscussionEngine } from '@/services/DiscussionEngine';
-import { PersonalityId } from '@/types/personality';
 
-interface DiscussionEngineState {
-  isProcessing: boolean;
-  canBeInterrupted: boolean;
-  currentTask?: string;
-  emotionalState: 'neutral' | 'happy' | 'thinking' | 'listening';
-}
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { PersonalityId } from '@/types/personality';
+import { SupportedLanguage } from '@/types/speechRecognition';
+import { DiscussionEngine } from '@/services/DiscussionEngine';
+import { SimpleResponseGenerator } from '@/services/SimpleResponseGenerator';
 
 export const useDiscussionEngine = (initialPersonality: PersonalityId = 'friendly') => {
-  const engineRef = useRef<DiscussionEngine>(new DiscussionEngine(initialPersonality));
-  const [engineState, setEngineState] = useState<DiscussionEngineState>({
+  const discussionEngineRef = useRef<DiscussionEngine | null>(null);
+  const responseGeneratorRef = useRef<SimpleResponseGenerator>(new SimpleResponseGenerator());
+  
+  const [engineState, setEngineState] = useState({
     isProcessing: false,
     canBeInterrupted: true,
-    emotionalState: 'neutral'
+    emotionalState: 'neutral' as 'neutral' | 'happy' | 'thinking' | 'listening'
   });
 
-  const [memoryStats, setMemoryStats] = useState({
-    totalMessages: 0,
-    sessionDuration: 0,
-    userInterests: [] as string[],
-    userPreferences: [] as string[],
-    lastInteraction: new Date()
-  });
-
-  // Initialiser les callbacks du moteur
+  // Initialiser le moteur
   useEffect(() => {
-    const engine = engineRef.current;
+    if (!discussionEngineRef.current) {
+      discussionEngineRef.current = new DiscussionEngine(initialPersonality);
+      discussionEngineRef.current.setStateChangeCallback(setEngineState);
+      console.log('🚀 Discussion engine initialisé avec support multilingue');
+    }
+  }, [initialPersonality]);
+
+  const processMessage = useCallback(async (text: string, language: SupportedLanguage = 'fr'): Promise<string> => {
+    console.log(`🧠 Traitement du message en ${language}: "${text}"`);
     
-    engine.setStateChangeCallback((state) => {
-      console.log('🔄 État du moteur mis à jour:', state);
-      setEngineState(state);
-    });
-
-    engine.setInterruptionCallback(() => {
-      console.log('🔄 Interruption traitée par le moteur');
-    });
-
-    // Mettre à jour les stats périodiquement
-    const statsInterval = setInterval(() => {
-      setMemoryStats(engine.getMemoryStats());
-    }, 5000);
-
-    return () => {
-      clearInterval(statsInterval);
-    };
-  }, []);
-
-  const changePersonality = useCallback((personalityId: PersonalityId) => {
-    console.log('🎭 Changement de personnalité vers:', personalityId);
-    engineRef.current.setPersonality(personalityId);
-  }, []);
-
-  const getCurrentPersonality = useCallback(() => {
-    return engineRef.current.getCurrentPersonality();
-  }, []);
-
-  const processMessage = useCallback(async (message: string): Promise<string> => {
+    // Pour l'instant, utiliser le générateur de réponses simple avec support multilingue
+    // Plus tard, le DiscussionEngine pourra être étendu pour le multilinguisme
     try {
-      console.log('🎯 Traitement du message via le moteur de discussion');
-      const response = await engineRef.current.processUserInput(message);
+      const response = responseGeneratorRef.current.generateResponse({
+        language,
+        userInput: text
+      });
       
-      // Mettre à jour les stats après traitement
-      setMemoryStats(engineRef.current.getMemoryStats());
-      
+      console.log(`✅ Réponse générée en ${language}: "${response}"`);
       return response;
     } catch (error) {
-      console.error('❌ Erreur dans le moteur de discussion:', error);
-      throw error;
+      console.error('❌ Erreur génération réponse:', error);
+      const fallback = language === 'ar' 
+        ? 'عذراً، حدث خطأ في معالجة رسالتك.'
+        : 'Désolé, une erreur est survenue lors du traitement de votre message.';
+      return fallback;
     }
   }, []);
 
-  const interrupt = useCallback((): boolean => {
-    console.log('🛑 Tentative d\'interruption');
-    return engineRef.current.interrupt();
+  const interrupt = useCallback(() => {
+    if (discussionEngineRef.current) {
+      return discussionEngineRef.current.interrupt();
+    }
+    return false;
+  }, []);
+
+  const resetConversation = useCallback(() => {
+    if (discussionEngineRef.current) {
+      // Réinitialiser avec la personnalité actuelle
+      discussionEngineRef.current = new DiscussionEngine(initialPersonality);
+      discussionEngineRef.current.setStateChangeCallback(setEngineState);
+    }
+  }, [initialPersonality]);
+
+  const changePersonality = useCallback((personalityId: PersonalityId) => {
+    if (discussionEngineRef.current) {
+      discussionEngineRef.current.setPersonality(personalityId);
+    }
+  }, []);
+
+  const getCurrentPersonality = useCallback(() => {
+    if (discussionEngineRef.current) {
+      return discussionEngineRef.current.getCurrentPersonality();
+    }
+    // Fallback par défaut
+    return { id: 'friendly', name: 'Amical' };
   }, []);
 
   const getConversationExport = useCallback(() => {
-    return engineRef.current.exportMemory();
+    if (discussionEngineRef.current) {
+      return discussionEngineRef.current.exportMemory();
+    }
+    return null;
   }, []);
 
-  const resetConversation = useCallback((newPersonality?: PersonalityId) => {
-    console.log('🔄 Réinitialisation de la conversation');
-    engineRef.current = new DiscussionEngine(newPersonality || 'friendly');
-    
-    // Réinitialiser les callbacks
-    engineRef.current.setStateChangeCallback((state) => {
-      setEngineState(state);
-    });
-
-    engineRef.current.setInterruptionCallback(() => {
-      console.log('🔄 Interruption traitée après reset');
-    });
-    
-    setMemoryStats(engineRef.current.getMemoryStats());
+  const getMemoryStats = useCallback(() => {
+    if (discussionEngineRef.current) {
+      return discussionEngineRef.current.getMemoryStats();
+    }
+    return {
+      totalMessages: 0,
+      sessionDuration: 0,
+      userInterests: [],
+      userPreferences: [],
+      lastInteraction: new Date()
+    };
   }, []);
 
   return {
-    // État du moteur
     engineState,
-    memoryStats,
-    
-    // Actions
+    memoryStats: getMemoryStats(),
     processMessage,
     interrupt,
     resetConversation,
     getConversationExport,
-    
-    // États dérivés pour compatibilité
-    isProcessing: engineState.isProcessing,
-    canBeInterrupted: engineState.canBeInterrupted,
-    emotionalState: engineState.emotionalState,
-    
-    // Nouvelles fonctions de personnalité
     changePersonality,
     getCurrentPersonality
   };
