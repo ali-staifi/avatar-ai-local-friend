@@ -1,6 +1,8 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { OllamaService, OllamaModel } from '@/services/OllamaService';
 
+// Export the OllamaModel type so it can be used by other components
 export type { OllamaModel } from '@/services/OllamaService';
 
 export interface OllamaConfig {
