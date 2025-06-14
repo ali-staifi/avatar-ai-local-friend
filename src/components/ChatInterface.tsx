@@ -216,7 +216,6 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           engineInfo={engineInfo}
           isListening={isListening}
           engineStatus={engineStatus}
-          // Nouvelles props VAD
           vadEnabled={vadEnabled}
           onToggleVAD={toggleVAD}
           vadSupported={vadSupported}
@@ -234,13 +233,11 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
           memoryStats={memoryStats}
           engineState={engineState}
           currentPersonality={getCurrentPersonality()}
-          // Props système hybride + VAD
           onToggleEngineSelector={() => setShowEngineSelector(!showEngineSelector)}
           showEngineSelector={showEngineSelector}
           speechEngine={currentEngine}
           speechLanguage={currentLanguage}
           speechEngineStatus={engineStatus}
-          vadEnabled={vadEnabled}
           vadSupported={vadSupported}
         />
         
@@ -261,7 +258,6 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
             currentEngine={currentEngine}
             engineStatus={engineStatus}
             currentLanguage={currentLanguage}
-            // Nouvelles props VAD
             vadEnabled={vadEnabled}
             vadSupported={vadSupported}
             vadListening={vadListening}

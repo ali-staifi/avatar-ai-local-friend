@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { voskModelManager } from '@/services/VoskModelManager';
@@ -8,7 +7,7 @@ import { useVoskEngine } from './useVoskEngine';
 import { useSpeechEngineManager } from './useSpeechEngineManager';
 import { SpeechEngine, SupportedLanguage, HybridSpeechConfig, EngineInfo } from '@/types/speechRecognition';
 
-export { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
+export type { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
 
 export const useHybridSpeechRecognition = (
   onResult: (transcript: string) => void,

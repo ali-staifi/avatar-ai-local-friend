@@ -1,37 +1,15 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Globe, Mic, Shield, Wifi, WifiOff, Activity } from 'lucide-react';
-import { SpeechEngine, SupportedLanguage } from '@/hooks/useHybridSpeechRecognition';
+import { Mic, Wifi, Shield } from 'lucide-react';
+import { SpeechEngine, SupportedLanguage, EngineInfo } from '@/types/speechRecognition';
 import { ModelLoadingProgress } from '@/services/VoskModelManager';
-
-interface EngineInfo {
-  webSpeech: {
-    supported: boolean;
-    available: boolean;
-    description: string;
-  };
-  vosk: {
-    supported: boolean;
-    available: boolean;
-    description: string;
-    modelProgress?: ModelLoadingProgress;
-  };
-  vad: {
-    supported: boolean;
-    enabled: boolean;
-    status: 'ready' | 'listening';
-    bufferStatus: {
-      bufferUsage: number;
-      isInVoiceSegment: boolean;
-      voiceDuration: number;
-      silenceDuration: number;
-    };
-  };
-}
+import { VADControls } from './VADControls';
+import { LanguageSelector } from './LanguageSelector';
+import { EngineItem } from './EngineItem';
+import { StatusDisplay } from './StatusDisplay';
 
 interface SpeechEngineSelectorProps {
   currentEngine: SpeechEngine;
@@ -41,7 +19,6 @@ interface SpeechEngineSelectorProps {
   engineInfo: EngineInfo;
   isListening: boolean;
   engineStatus: 'ready' | 'loading' | 'error';
-  // Nouvelles props VAD
   vadEnabled?: boolean;
   onToggleVAD?: () => void;
   vadSupported?: boolean;
@@ -68,21 +45,6 @@ export const SpeechEngineSelector: React.FC<SpeechEngineSelectorProps> = ({
   vadListening = false,
   bufferStatus
 }) => {
-  const languages = [
-    {
-      code: 'fr' as SupportedLanguage,
-      name: 'Français',
-      flag: '🇫🇷',
-      description: 'Reconnaissance vocale en français'
-    },
-    {
-      code: 'ar' as SupportedLanguage,
-      name: 'العربية',
-      flag: '🇸🇦',
-      description: 'التعرف على الكلام بالعربية'
-    }
-  ];
-
   const engines = [
     {
       id: 'web-speech' as SpeechEngine,
@@ -119,233 +81,51 @@ export const SpeechEngineSelector: React.FC<SpeechEngineSelectorProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Contrôles VAD */}
-        {vadSupported && (
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Détection Automatique (VAD)
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Filtre intelligemment les segments vocaux utiles
-                </p>
-              </div>
-              <Button
-                variant={vadEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={onToggleVAD}
-                disabled={isListening}
-              >
-                {vadEnabled ? "Activé" : "Désactivé"}
-              </Button>
-            </div>
-            
-            {vadEnabled && vadListening && bufferStatus && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span>Buffer circulaire:</span>
-                  <span className="font-mono">{Math.round(bufferStatus.bufferUsage)}%</span>
-                </div>
-                <Progress value={bufferStatus.bufferUsage} className="h-1" />
-                
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <Badge 
-                      variant={bufferStatus.isInVoiceSegment ? "default" : "secondary"}
-                      className="text-xs"
-                    >
-                      {bufferStatus.isInVoiceSegment ? "🗣️ Voix" : "🤫 Silence"}
-                    </Badge>
-                  </div>
-                  {bufferStatus.isInVoiceSegment && (
-                    <span>Durée: {Math.round(bufferStatus.voiceDuration / 1000)}s</span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <VADControls
+          vadSupported={vadSupported}
+          vadEnabled={vadEnabled}
+          vadListening={vadListening}
+          isListening={isListening}
+          onToggleVAD={onToggleVAD}
+          bufferStatus={bufferStatus}
+        />
 
-        {/* Sélection de langue */}
-        <div>
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Langue
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {languages.map((lang) => (
-              <Button
-                key={lang.code}
-                variant={currentLanguage === lang.code ? "default" : "outline"}
-                onClick={() => onLanguageChange(lang.code)}
-                disabled={isListening}
-                className="justify-start h-auto p-3"
-                title={lang.description}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <span className="text-lg">{lang.flag}</span>
-                  <div className="text-left">
-                    <div className="font-medium">{lang.name}</div>
-                    <div className="text-xs opacity-70">{lang.code.toUpperCase()}</div>
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
+        <LanguageSelector
+          currentLanguage={currentLanguage}
+          onLanguageChange={onLanguageChange}
+          isListening={isListening}
+        />
 
         <Separator />
 
-        {/* Sélection de moteur */}
         <div>
           <h3 className="font-semibold mb-3">Moteur de reconnaissance</h3>
           <div className="space-y-3">
             {engines.map((engine) => (
-              <div key={engine.id} className="relative">
-                <Button
-                  variant={currentEngine === engine.id ? "default" : "outline"}
-                  onClick={() => onEngineChange(engine.id)}
-                  disabled={isListening || !engine.available}
-                  className="w-full justify-start h-auto p-4"
-                >
-                  <div className="flex items-start gap-3 w-full">
-                    <div className="mt-1">{engine.icon}</div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{engine.name}</span>
-                        {currentEngine === engine.id && (
-                          <Badge variant="secondary" className="text-xs">Actuel</Badge>
-                        )}
-                        {engine.id === 'web-speech' && <WifiOff className="h-3 w-3 opacity-50" />}
-                        {engine.id === 'vosk' && <Shield className="h-3 w-3 opacity-50" />}
-                        {vadEnabled && vadSupported && (
-                          <Badge variant="outline" className="text-xs">+ VAD</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs opacity-70 mb-2">
-                        {engine.description}
-                        {vadEnabled && vadSupported && engine.id === currentEngine && 
-                          " avec détection automatique des segments vocaux"}
-                      </p>
-                      
-                      {/* État du moteur */}
-                      <div className="flex gap-1 mb-2">
-                        {engine.supported ? (
-                          <Badge variant="secondary" className="text-xs">Supporté</Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-xs">Non supporté</Badge>
-                        )}
-                        
-                        {engine.available ? (
-                          <Badge variant="default" className="text-xs">Disponible</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            {engine.id === 'vosk' ? 'Modèle requis' : 'Non disponible'}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Progrès de chargement Vosk */}
-                      {engine.id === 'vosk' && engineInfo.vosk.modelProgress && !engineInfo.vosk.modelProgress.loaded && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs">Chargement modèle...</span>
-                            <span className="text-xs font-mono">{Math.round(engineInfo.vosk.modelProgress.progress)}%</span>
-                          </div>
-                          <Progress value={engineInfo.vosk.modelProgress.progress} className="h-1" />
-                        </div>
-                      )}
-
-                      {/* Avantages/Inconvénients avec VAD */}
-                      <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                        <div>
-                          <span className="text-green-600 font-medium">✓ Avantages:</span>
-                          <ul className="list-none space-y-0.5 mt-1">
-                            {engine.pros.map((pro, idx) => (
-                              <li key={idx} className="opacity-70">• {pro}</li>
-                            ))}
-                            {vadEnabled && vadSupported && (
-                              <li className="opacity-70">• Détection automatique</li>
-                            )}
-                          </ul>
-                        </div>
-                        <div>
-                          <span className="text-orange-600 font-medium">⚠ Limites:</span>
-                          <ul className="list-none space-y-0.5 mt-1">
-                            {engine.cons.map((con, idx) => (
-                              <li key={idx} className="opacity-70">• {con}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Button>
-              </div>
+              <EngineItem
+                key={engine.id}
+                engine={engine}
+                currentEngine={currentEngine}
+                vadEnabled={vadEnabled}
+                vadSupported={vadSupported}
+                isListening={isListening}
+                modelProgress={engine.id === 'vosk' ? engineInfo.vosk.modelProgress : undefined}
+                onEngineChange={onEngineChange}
+              />
             ))}
           </div>
         </div>
 
-        {/* État actuel avec VAD */}
-        <div className="p-3 bg-muted rounded-lg">
-          <h4 className="font-medium mb-2">État actuel</h4>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex justify-between">
-              <span>Moteur:</span>
-              <span className="font-medium capitalize">{currentEngine}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Langue:</span>
-              <span className="font-medium">{languages.find(l => l.code === currentLanguage)?.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Statut:</span>
-              <Badge 
-                variant={
-                  engineStatus === 'ready' ? 'default' : 
-                  engineStatus === 'loading' ? 'secondary' : 'destructive'
-                }
-                className="text-xs"
-              >
-                {engineStatus === 'ready' ? 'Prêt' : 
-                 engineStatus === 'loading' ? 'Chargement' : 'Erreur'}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span>Écoute:</span>
-              <Badge variant={isListening ? 'destructive' : 'outline'} className="text-xs">
-                {isListening ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            
-            {vadSupported && (
-              <>
-                <div className="flex justify-between">
-                  <span>VAD:</span>
-                  <Badge 
-                    variant={vadEnabled ? 'default' : 'outline'}
-                    className="text-xs"
-                  >
-                    {vadEnabled ? 'Activé' : 'Désactivé'}
-                  </Badge>
-                </div>
-                {vadEnabled && vadListening && (
-                  <div className="flex justify-between">
-                    <span>Détection:</span>
-                    <Badge 
-                      variant={bufferStatus?.isInVoiceSegment ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {bufferStatus?.isInVoiceSegment ? 'Voix' : 'Silence'}
-                    </Badge>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        <StatusDisplay
+          currentEngine={currentEngine}
+          currentLanguage={currentLanguage}
+          engineStatus={engineStatus}
+          isListening={isListening}
+          vadEnabled={vadEnabled}
+          vadSupported={vadSupported}
+          vadListening={vadListening}
+          bufferStatus={bufferStatus}
+        />
       </CardContent>
     </Card>
   );
