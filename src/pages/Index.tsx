@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 const Index = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking'>('neutral');
+  const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking' | 'listening'>('neutral');
 
   console.log('Index component state:', { isListening, isSpeaking, emotion });
 
@@ -45,6 +45,7 @@ const Index = () => {
                   {isListening && <Badge variant="destructive">🔴 Écoute</Badge>}
                   {isSpeaking && <Badge variant="default">🔊 Parle</Badge>}
                   {emotion === 'thinking' && <Badge variant="secondary">🤔 Réfléchit</Badge>}
+                  {emotion === 'listening' && <Badge variant="secondary">👂 Écoute</Badge>}
                 </div>
               </CardTitle>
             </CardHeader>
@@ -52,7 +53,7 @@ const Index = () => {
               <Avatar3DWrapper 
                 isListening={isListening}
                 isSpeaking={isSpeaking}
-                emotion={emotion}
+                emotion={emotion === 'listening' ? 'thinking' : emotion}
               />
               
               {/* Status Info */}

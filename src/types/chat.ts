@@ -9,5 +9,5 @@ export interface Message {
 export interface ChatInterfaceProps {
   onListeningChange: (listening: boolean) => void;
   onSpeakingChange: (speaking: boolean) => void;
-  onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking') => void;
+  onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking' | 'listening') => void;
 }

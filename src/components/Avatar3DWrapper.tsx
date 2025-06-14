@@ -1,6 +1,7 @@
 
 import React, { Suspense } from 'react';
 import { Avatar3D } from '@/components/Avatar3D';
+import { SimpleAvatar } from '@/components/SimpleAvatar';
 
 interface Avatar3DWrapperProps {
   isListening: boolean;
@@ -9,10 +10,10 @@ interface Avatar3DWrapperProps {
 }
 
 class Avatar3DErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  { children: React.ReactNode; fallbackProps: Avatar3DWrapperProps },
   { hasError: boolean; error: Error | null }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: React.ReactNode; fallbackProps: Avatar3DWrapperProps }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -28,17 +29,8 @@ class Avatar3DErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="flex items-center justify-center h-full bg-muted rounded-lg">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">🤖</div>
-            <p className="text-muted-foreground">Avatar 3D temporairement indisponible</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Erreur: {this.state.error?.message}
-            </p>
-          </div>
-        </div>
-      );
+      console.log('🔄 Basculement vers l\'avatar simple à cause d\'une erreur');
+      return <SimpleAvatar {...this.props.fallbackProps} />;
     }
 
     return this.props.children;
@@ -55,15 +47,8 @@ export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps & Record<string, any
   console.log('Avatar3DWrapper rendering with clean props:', cleanProps);
   
   return (
-    <Avatar3DErrorBoundary>
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-full bg-muted rounded-lg">
-          <div className="text-center p-8">
-            <div className="text-4xl mb-4">⏳</div>
-            <p className="text-muted-foreground">Chargement de l'avatar 3D...</p>
-          </div>
-        </div>
-      }>
+    <Avatar3DErrorBoundary fallbackProps={cleanProps}>
+      <Suspense fallback={<SimpleAvatar {...cleanProps} />}>
         <Avatar3D {...cleanProps} />
       </Suspense>
     </Avatar3DErrorBoundary>
