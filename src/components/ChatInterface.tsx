@@ -1,23 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
+
+import React, { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
-
-interface ChatInterfaceProps {
-  onListeningChange: (listening: boolean) => void;
-  onSpeakingChange: (speaking: boolean) => void;
-  onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking') => void;
-}
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { generateResponse } from '@/utils/messageGenerator';
+import { ChatHeader } from '@/components/chat/ChatHeader';
+import { MessageList } from '@/components/chat/MessageList';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { Message, ChatInterfaceProps } from '@/types/chat';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onListeningChange,
@@ -33,126 +24,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   ]);
   const [inputText, setInputText] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Initialiser la reconnaissance vocale
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognitionConstructor();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'fr-FR';
-
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        handleSendMessage(transcript);
-        setIsListening(false);
-        onListeningChange(false);
-      };
-
-      recognitionRef.current.onerror = () => {
-        setIsListening(false);
-        onListeningChange(false);
-        toast({
-          title: "Erreur de reconnaissance vocale",
-          description: "Impossible de capturer l'audio. Veuillez réessayer.",
-          variant: "destructive"
-        });
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-        onListeningChange(false);
-      };
-    }
+  const handleSpeechResult = useCallback((transcript: string) => {
+    handleSendMessage(transcript);
   }, []);
 
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      toast({
-        title: "Reconnaissance vocale non supportée",
-        description: "Votre navigateur ne supporte pas la reconnaissance vocale.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const { isListening, toggleListening } = useSpeechRecognition(handleSpeechResult);
+  
+  const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      onListeningChange(false);
-    } else {
-      recognitionRef.current.start();
-      setIsListening(true);
-      onListeningChange(true);
-    }
-  };
+  // Update parent component when states change
+  React.useEffect(() => {
+    onListeningChange(isListening);
+  }, [isListening, onListeningChange]);
 
-  const generateResponse = async (userMessage: string): Promise<string> => {
-    // Simuler l'IA conversationnelle locale
-    setIsThinking(true);
-    onEmotionChange('thinking');
-    
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    
-    setIsThinking(false);
-    onEmotionChange('happy');
-
-    const responses = [
-      `C'est une excellente question ! Basé sur "${userMessage}", je pense que...`,
-      `Intéressant ! Concernant "${userMessage}", voici mon analyse :`,
-      `Je comprends votre point sur "${userMessage}". Permettez-moi de réfléchir à cela...`,
-      `Bonne observation ! En relation avec "${userMessage}", je dirais que...`,
-      `Merci pour cette question sur "${userMessage}". Voici ma réponse :`
-    ];
-
-    const contexts = [
-      "D'après mes données d'entraînement, cette approche est généralement efficace.",
-      "Cela dépend du contexte, mais en général, je recommanderais cette solution.",
-      "C'est un domaine complexe, mais voici une approche pratique.",
-      "Basé sur les meilleures pratiques, voici ce que je suggère.",
-      "Il y a plusieurs façons d'aborder cela, mais voici la plus simple."
-    ];
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    const randomContext = contexts[Math.floor(Math.random() * contexts.length)];
-    
-    return `${randomResponse} ${randomContext}`;
-  };
-
-  const speak = (text: string) => {
-    if (!speechEnabled || !('speechSynthesis' in window)) return;
-
-    // Arrêter toute synthèse en cours
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-    
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      onSpeakingChange(true);
-    };
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      onSpeakingChange(false);
-      onEmotionChange('neutral');
-    };
-
-    speechSynthesisRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
+  React.useEffect(() => {
+    onSpeakingChange(isSpeaking);
+  }, [isSpeaking, onSpeakingChange]);
 
   const handleSendMessage = async (text?: string) => {
     const messageText = text || inputText.trim();
@@ -170,8 +61,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     // Générer la réponse de l'IA
     try {
+      setIsThinking(true);
+      onEmotionChange('thinking');
+      
       const response = await generateResponse(messageText);
       
+      setIsThinking(false);
+      onEmotionChange('happy');
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response,
@@ -183,9 +80,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       
       // Synthèse vocale de la réponse
       if (speechEnabled) {
-        speak(response);
+        speak(
+          response,
+          () => onSpeakingChange(true),
+          () => {
+            onSpeakingChange(false);
+            onEmotionChange('neutral');
+          }
+        );
       }
     } catch (error) {
+      setIsThinking(false);
+      onEmotionChange('neutral');
       toast({
         title: "Erreur",
         description: "Impossible de générer une réponse. Veuillez réessayer.",
@@ -196,81 +102,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <span>Chat avec Avatar AI</span>
-          <div className="flex gap-2">
-            <Button
-              variant={speechEnabled ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSpeechEnabled(!speechEnabled)}
-            >
-              {speechEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
-          </div>
-        </CardTitle>
-      </CardHeader>
+      <ChatHeader 
+        speechEnabled={speechEnabled}
+        onToggleSpeech={setSpeechEnabled}
+      />
       
       <CardContent className="flex-1 flex flex-col gap-4">
-        <ScrollArea className="flex-1 h-96">
-          <div className="space-y-4 pr-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    message.isUser
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="text-sm">{message.text}</p>
-                  <span className="text-xs opacity-70">
-                    {message.timestamp.toLocaleTimeString()}
-                  </span>
-                </div>
-              </div>
-            ))}
-            
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-bounce">🤔</div>
-                    <span className="text-sm">Je réfléchis...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+        <MessageList 
+          messages={messages}
+          isThinking={isThinking}
+        />
 
-        <div className="flex gap-2">
-          <Input
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Tapez votre message..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={isListening || isSpeaking}
-          />
-          
-          <Button
-            variant={isListening ? "destructive" : "outline"}
-            onClick={toggleListening}
-            disabled={isSpeaking}
-          >
-            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </Button>
-          
-          <Button 
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim() || isListening || isSpeaking}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        <ChatInput
+          inputText={inputText}
+          setInputText={setInputText}
+          onSendMessage={() => handleSendMessage()}
+          onToggleListening={toggleListening}
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+        />
       </CardContent>
     </Card>
   );

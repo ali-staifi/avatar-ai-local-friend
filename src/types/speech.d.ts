@@ -1,5 +1,4 @@
 
-// Type definitions for Web Speech API
 declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition;
@@ -11,36 +10,34 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
   start(): void;
   stop(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
 }
 
-interface SpeechRecognitionEvent extends Event {
+interface SpeechRecognitionEvent {
   results: SpeechRecognitionResultList;
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
+interface SpeechRecognitionErrorEvent {
   error: string;
 }
 
 interface SpeechRecognitionResultList {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
   [index: number]: SpeechRecognitionResult;
+  length: number;
 }
 
 interface SpeechRecognitionResult {
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
   [index: number]: SpeechRecognitionAlternative;
+  length: number;
 }
 
 interface SpeechRecognitionAlternative {
-  readonly transcript: string;
-  readonly confidence: number;
+  transcript: string;
+  confidence: number;
 }
 
 declare var SpeechRecognition: {
