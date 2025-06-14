@@ -3,17 +3,20 @@ import React, { useState } from 'react';
 import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
 import { ChatInterface } from '@/components/ChatInterface';
 import { PersonalitySelector } from '@/components/PersonalitySelector';
+import { GenderSelector } from '@/components/GenderSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PersonalityId } from '@/types/personality';
+import { Gender } from '@/types/gender';
 
 const Index = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking' | 'listening'>('neutral');
   const [currentPersonality, setCurrentPersonality] = useState<PersonalityId>('friendly');
+  const [currentGender, setCurrentGender] = useState<Gender>('male');
 
-  console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality });
+  console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality, currentGender });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -38,11 +41,18 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Personality Selector */}
-        <div className="mb-6">
+        {/* Controls Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Personality Selector */}
           <PersonalitySelector
             currentPersonality={currentPersonality}
             onPersonalityChange={setCurrentPersonality}
+          />
+          
+          {/* Gender Selector */}
+          <GenderSelector
+            currentGender={currentGender}
+            onGenderChange={setCurrentGender}
           />
         </div>
 
@@ -91,6 +101,12 @@ const Index = () => {
                   <div className="flex justify-between">
                     <span>Personnalité :</span>
                     <span className="text-blue-500 capitalize">{currentPersonality}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Genre :</span>
+                    <span className="text-green-500 capitalize">
+                      {currentGender === 'male' ? 'Homme' : 'Femme'}
+                    </span>
                   </div>
                 </div>
               </div>
