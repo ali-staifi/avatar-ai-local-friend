@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import '@/types/speech';
 
 interface Message {
   id: string;
@@ -52,7 +51,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'fr-FR';
 
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+      recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         handleSendMessage(transcript);
         setIsListening(false);
