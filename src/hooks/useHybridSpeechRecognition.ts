@@ -1,7 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { voskModelManager } from '@/services/VoskModelManager';
 import { useVoiceActivityDetection } from './useVoiceActivityDetection';
 import { useWebSpeechEngine } from './useWebSpeechEngine';
 import { useVoskEngine } from './useVoskEngine';
