@@ -1,4 +1,7 @@
 import { PERSONALITY_TRAITS, PersonalityTrait, PersonalityId } from '@/types/personality';
+import { IntentRecognition, Intent } from './IntentRecognition';
+import { DialogueManager, DialogueResponse } from './DialogueManager';
+import { ResponseEnhancer, EnhancedResponse } from './ResponseEnhancer';
 
 interface ConversationMemory {
   id: string;
@@ -7,6 +10,8 @@ interface ConversationMemory {
     content: string;
     timestamp: Date;
     context?: string;
+    intent?: Intent;
+    enhancedResponse?: EnhancedResponse;
   }>;
   userProfile: {
     name?: string;
@@ -31,6 +36,11 @@ export class DiscussionEngine {
   private interruptionCallback?: () => void;
   private stateChangeCallback?: (state: DiscussionState) => void;
 
+  // Nouveaux services avancés
+  private intentRecognition: IntentRecognition;
+  private dialogueManager: DialogueManager;
+  private responseEnhancer: ResponseEnhancer;
+
   constructor(personalityId: PersonalityId = 'friendly') {
     this.memory = {
       id: this.generateConversationId(),
@@ -50,6 +60,13 @@ export class DiscussionEngine {
     };
 
     this.currentPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId) || PERSONALITY_TRAITS[0];
+    
+    // Initialiser les nouveaux services
+    this.intentRecognition = new IntentRecognition();
+    this.dialogueManager = new DialogueManager(this.currentPersonality);
+    this.responseEnhancer = new ResponseEnhancer(this.currentPersonality);
+
+    console.log('🚀 Moteur de discussion avancé initialisé avec les services Rasa-like');
   }
 
   private generateConversationId(): string {
@@ -73,7 +90,12 @@ export class DiscussionEngine {
     const newPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId);
     if (newPersonality) {
       this.currentPersonality = newPersonality;
-      console.log(`🎭 Personnalité changée vers: ${newPersonality.name}`);
+      
+      // Mettre à jour tous les services avec la nouvelle personnalité
+      this.dialogueManager.updatePersonality(newPersonality);
+      this.responseEnhancer.updatePersonality(newPersonality);
+      
+      console.log(`🎭 Personnalité changée vers: ${newPersonality.name} (services mis à jour)`);
     }
   }
 
@@ -82,12 +104,8 @@ export class DiscussionEngine {
   }
 
   public async processUserInput(input: string): Promise<string> {
-    console.log('📝 Processing user input:', input);
+    console.log('📝 Processing user input with advanced dialogue system:', input);
     
-    // Ajouter le message utilisateur à la mémoire
-    this.addToMemory('user', input);
-    
-    // Mettre à jour l'état
     this.updateState({ 
       isProcessing: true, 
       canBeInterrupted: false,
@@ -96,26 +114,43 @@ export class DiscussionEngine {
     });
 
     try {
-      // Analyser le contexte et l'intention
-      const context = this.analyzeContext(input);
+      // 1. Reconnaissance d'intention
+      console.log('🎯 Phase 1: Reconnaissance d\'intention');
+      const intent = this.intentRecognition.recognizeIntent(input);
       
-      // Générer une réponse contextuelle
-      const response = await this.generateContextualResponse(input, context);
+      // 2. Gestion du dialogue contextuel
+      console.log('💬 Phase 2: Gestion du dialogue contextuel');
+      const dialogueResponse = this.dialogueManager.processDialogue(intent, input);
       
-      // Ajouter la réponse à la mémoire
-      this.addToMemory('assistant', response, context);
+      // 3. Amélioration de la réponse
+      console.log('✨ Phase 3: Amélioration de la réponse');
+      const enhancedResponse = this.responseEnhancer.enhanceResponse(
+        dialogueResponse, 
+        this.dialogueManager.getDialogueState()
+      );
       
-      // Mettre à jour l'état
+      // 4. Ajouter à la mémoire avec les données enrichies
+      this.addToMemory('user', input, dialogueResponse.contextualInfo, intent);
+      this.addToMemory('assistant', enhancedResponse.text, dialogueResponse.contextualInfo, intent, enhancedResponse);
+      
+      // 5. Mettre à jour l'état émotionnel
       this.updateState({
         isProcessing: false,
         canBeInterrupted: true,
-        emotionalState: 'happy',
+        emotionalState: enhancedResponse.emotion,
         currentTask: undefined
       });
 
-      return response;
+      console.log('🎉 Traitement avancé terminé:', {
+        intent: intent.name,
+        confidence: intent.confidence,
+        emotion: enhancedResponse.emotion,
+        followUps: enhancedResponse.followUpQuestions.length
+      });
+
+      return enhancedResponse.text;
     } catch (error) {
-      console.error('❌ Erreur lors du traitement:', error);
+      console.error('❌ Erreur dans le moteur de discussion avancé:', error);
       this.updateState({
         isProcessing: false,
         canBeInterrupted: true,
@@ -126,11 +161,19 @@ export class DiscussionEngine {
     }
   }
 
-  private addToMemory(role: 'user' | 'assistant', content: string, context?: string) {
+  private addToMemory(
+    role: 'user' | 'assistant', 
+    content: string, 
+    context?: string, 
+    intent?: Intent,
+    enhancedResponse?: EnhancedResponse
+  ) {
     this.memory.messages.push({
       role,
       content,
       context,
+      intent,
+      enhancedResponse,
       timestamp: new Date()
     });
     
@@ -141,16 +184,25 @@ export class DiscussionEngine {
       this.memory.messages = this.memory.messages.slice(-50);
     }
 
-    // Analyser les préférences utilisateur
+    // Analyser les préférences utilisateur avec les nouvelles données
     if (role === 'user') {
-      this.updateUserProfile(content);
+      this.updateUserProfile(content, intent);
     }
   }
 
-  private updateUserProfile(userInput: string) {
+  private updateUserProfile(userInput: string, intent?: Intent) {
     const input = userInput.toLowerCase();
     
-    // Détecter les intérêts
+    // Utiliser les données d'intention pour améliorer le profil
+    if (intent) {
+      // Ajouter les entités détectées aux intérêts
+      for (const entity of intent.entities) {
+        if (entity.entity === 'topic' && !this.memory.userProfile.interests.includes(entity.value)) {
+          this.memory.userProfile.interests.push(entity.value);
+        }
+      }
+    }
+    
     const interests = ['technologie', 'art', 'musique', 'sport', 'cinéma', 'lecture', 'voyage'];
     interests.forEach(interest => {
       if (input.includes(interest) && !this.memory.userProfile.interests.includes(interest)) {
@@ -172,110 +224,9 @@ export class DiscussionEngine {
     }
   }
 
-  private analyzeContext(input: string): string {
-    const recentMessages = this.memory.messages.slice(-5);
-    const hasRecentContext = recentMessages.length > 0;
-    
-    if (hasRecentContext) {
-      const lastAssistantMessage = recentMessages
-        .reverse()
-        .find(msg => msg.role === 'assistant');
-      
-      if (lastAssistantMessage) {
-        return `Contexte récent: ${lastAssistantMessage.content.substring(0, 100)}...`;
-      }
-    }
-    
-    return 'Nouvelle conversation';
-  }
-
-  private async generateContextualResponse(input: string, context: string): Promise<string> {
-    // Simuler un délai de traitement réaliste
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
-
-    const userPreferences = this.memory.userProfile.preferences;
-    const userInterests = this.memory.userProfile.interests;
-    const conversationHistory = this.memory.messages.slice(-3);
-    
-    // Générer une réponse basée sur la personnalité
-    const personalityResponse = this.generatePersonalityBasedResponse(input, conversationHistory);
-    
-    return personalityResponse;
-  }
-
-  private generatePersonalityBasedResponse(input: string, history: typeof this.memory.messages): string {
-    const inputLower = input.toLowerCase();
-    const personality = this.currentPersonality;
-    
-    // Utiliser les patterns de langage de la personnalité
-    const speechPattern = personality.speechPattern[Math.floor(Math.random() * personality.speechPattern.length)];
-    
-    // Générer une réponse contextuelle selon la personnalité
-    let baseResponse = '';
-    
-    // Réponses spécifiques selon le type de personnalité
-    switch (personality.responseStyle) {
-      case 'warm':
-        baseResponse = this.generateWarmResponse(input, speechPattern);
-        break;
-      case 'analytical':
-        baseResponse = this.generateAnalyticalResponse(input, speechPattern);
-        break;
-      case 'creative':
-        baseResponse = this.generateCreativeResponse(input, speechPattern);
-        break;
-      case 'supportive':
-        baseResponse = this.generateSupportiveResponse(input, speechPattern);
-        break;
-      case 'enthusiastic':
-        baseResponse = this.generateEnthusiasticResponse(input, speechPattern);
-        break;
-      case 'peaceful':
-        baseResponse = this.generatePeacefulResponse(input, speechPattern);
-        break;
-      default:
-        baseResponse = `${speechPattern} Voici ma perspective sur votre question.`;
-    }
-    
-    // Ajouter un contexte basé sur les intérêts de la personnalité
-    const relatedInterest = personality.interests.find(interest => 
-      inputLower.includes(interest.toLowerCase())
-    );
-    
-    if (relatedInterest) {
-      baseResponse += ` D'ailleurs, je trouve le domaine de ${relatedInterest} particulièrement fascinant !`;
-    }
-    
-    return baseResponse;
-  }
-
-  private generateWarmResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Je sens que c'est important pour vous, et j'aimerais vraiment vous aider à explorer cette question ensemble.`;
-  }
-
-  private generateAnalyticalResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Pour bien comprendre votre question, laissez-moi la décomposer et examiner les différents aspects impliqués.`;
-  }
-
-  private generateCreativeResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Votre question m'inspire plusieurs approches innovantes que nous pourrions explorer !`;
-  }
-
-  private generateSupportiveResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Votre question montre une réelle réflexion, et je veux m'assurer de vous donner une réponse qui vous sera vraiment utile.`;
-  }
-
-  private generateEnthusiasticResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Votre question ouvre tellement de possibilités excitantes à explorer ! Plongeons-nous dedans !`;
-  }
-
-  private generatePeacefulResponse(input: string, speechPattern: string): string {
-    return `${speechPattern} Votre question mérite une réponse réfléchie et équilibrée. Permettez-moi de partager ma vision sereine sur ce sujet.`;
-  }
-
   public interrupt(): boolean {
     if (this.state.canBeInterrupted) {
-      console.log('🔄 Interruption détectée et acceptée');
+      console.log('🔄 Interruption détectée et acceptée par le moteur avancé');
       this.updateState({
         isProcessing: false,
         emotionalState: 'listening',
@@ -294,12 +245,19 @@ export class DiscussionEngine {
   }
 
   public getMemoryStats() {
+    const dialogueState = this.dialogueManager.getDialogueState();
+    
     return {
       totalMessages: this.memory.messages.length,
       sessionDuration: Date.now() - this.memory.sessionStartTime.getTime(),
-      userInterests: this.memory.userProfile.interests,
+      userInterests: [...this.memory.userProfile.interests, ...dialogueState.userProfile.interests],
       userPreferences: this.memory.userProfile.preferences,
-      lastInteraction: this.memory.lastInteraction
+      lastInteraction: this.memory.lastInteraction,
+      // Nouvelles statistiques avancées
+      currentTopic: dialogueState.currentTopic,
+      conversationFlow: dialogueState.conversationFlow,
+      followUpCount: dialogueState.followUpCount,
+      expertiseAreas: Array.from(dialogueState.userProfile.expertise.keys())
     };
   }
 
@@ -308,7 +266,68 @@ export class DiscussionEngine {
       conversationId: this.memory.id,
       messages: this.memory.messages,
       userProfile: this.memory.userProfile,
-      stats: this.getMemoryStats()
+      stats: this.getMemoryStats(),
+      // Nouvelles données d'export
+      dialogueState: this.dialogueManager.getDialogueState(),
+      personality: this.currentPersonality
     };
+  }
+
+  // Nouvelles méthodes pour accéder aux fonctionnalités avancées
+  public getLastIntentInfo(): Intent | undefined {
+    const lastMessage = this.memory.messages
+      .filter(m => m.role === 'user')
+      .pop();
+    return lastMessage?.intent;
+  }
+
+  public getConversationInsights() {
+    const dialogueState = this.dialogueManager.getDialogueState();
+    const recentMessages = this.memory.messages.slice(-10);
+    
+    return {
+      dominantIntents: this.calculateDominantIntents(recentMessages),
+      topicProgression: dialogueState.conversationFlow,
+      userEngagement: this.calculateEngagement(recentMessages),
+      personalityAlignment: this.assessPersonalityAlignment()
+    };
+  }
+
+  private calculateDominantIntents(messages: typeof this.memory.messages): Record<string, number> {
+    const intentCounts: Record<string, number> = {};
+    
+    for (const message of messages) {
+      if (message.intent) {
+        intentCounts[message.intent.name] = (intentCounts[message.intent.name] || 0) + 1;
+      }
+    }
+    
+    return intentCounts;
+  }
+
+  private calculateEngagement(messages: typeof this.memory.messages): number {
+    // Calculer l'engagement basé sur la longueur des messages et la fréquence
+    const userMessages = messages.filter(m => m.role === 'user');
+    const avgLength = userMessages.reduce((sum, m) => sum + m.content.length, 0) / userMessages.length || 0;
+    const timeSpread = userMessages.length > 1 ? 
+      (userMessages[userMessages.length - 1].timestamp.getTime() - userMessages[0].timestamp.getTime()) / 1000 / 60 : 0;
+    
+    return Math.min((avgLength / 50) * 0.5 + (userMessages.length / timeSpread) * 0.5, 1);
+  }
+
+  private assessPersonalityAlignment(): number {
+    // Évaluer à quel point les réponses correspondent à la personnalité
+    const recentResponses = this.memory.messages
+      .filter(m => m.role === 'assistant' && m.enhancedResponse)
+      .slice(-5);
+    
+    if (recentResponses.length === 0) return 0.5;
+    
+    const alignmentScores = recentResponses.map(response => {
+      const enhanced = response.enhancedResponse!;
+      return enhanced.personalityMarkers.length > 0 ? 0.8 : 0.4;
+    });
+    
+    return alignmentScores.reduce((sum, score) => sum + score, 0) / alignmentScores.length;
   }
 }
