@@ -42,7 +42,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   // Speech configuration
   const { speechConfig, updateSpeechConfig } = useChatSpeechConfig();
 
-  // Discussion engine avec support du genre
+  // Discussion engine avec support du genre et Ollama
   const {
     engineState,
     memoryStats,
@@ -51,7 +51,8 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     resetConversation,
     getConversationExport,
     changePersonality,
-    getCurrentPersonality
+    getCurrentPersonality,
+    ollama
   } = useDiscussionEngine(currentPersonality, currentGender);
 
   // Enhanced processMessage that includes language
@@ -175,6 +176,13 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
         currentLanguage={currentLanguage}
         onLanguageChange={handleLanguageChange}
         isListening={isListening}
+        ollamaAvailable={ollama.isAvailable}
+        ollamaModels={ollama.models}
+        ollamaLoading={ollama.isLoading}
+        ollamaConfig={ollama.config}
+        onOllamaConfigUpdate={ollama.updateConfig}
+        onRefreshOllamaModels={ollama.refreshModels}
+        onCheckOllamaAvailability={ollama.checkAvailability}
       />
 
       <ChatMainContent

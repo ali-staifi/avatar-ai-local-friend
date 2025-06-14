@@ -4,6 +4,7 @@ import { SupportedLanguage } from '@/types/speechRecognition';
 import { Gender } from '@/types/gender';
 import { DiscussionEngine } from '@/services/DiscussionEngine';
 import { SimpleResponseGenerator } from '@/services/SimpleResponseGenerator';
+import { useOllama, OllamaConfig } from './useOllama';
 
 export const useDiscussionEngine = (
   initialPersonality: PersonalityId = 'friendly',
@@ -12,11 +13,28 @@ export const useDiscussionEngine = (
   const discussionEngineRef = useRef<DiscussionEngine | null>(null);
   const responseGeneratorRef = useRef<SimpleResponseGenerator>(new SimpleResponseGenerator());
   
+  // Intégration Ollama
+  const {
+    isAvailable: ollamaAvailable,
+    models: ollamaModels,
+    isLoading: ollamaLoading,
+    config: ollamaConfig,
+    updateConfig: updateOllamaConfig,
+    generateResponse: generateOllamaResponse,
+    refreshModels: refreshOllamaModels,
+    checkAvailability: checkOllamaAvailability
+  } = useOllama();
+  
   const [engineState, setEngineState] = useState({
     isProcessing: false,
     canBeInterrupted: true,
     emotionalState: 'neutral' as 'neutral' | 'happy' | 'thinking' | 'listening'
   });
+
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }>>([]);
 
   // Initialiser le moteur avec le genre
   useEffect(() => {
@@ -39,10 +57,43 @@ export const useDiscussionEngine = (
     console.log(`🧠 Traitement du message en ${language} pour genre ${gender}: "${text}"`);
     
     try {
-      const response = responseGeneratorRef.current.generateResponse({
-        language,
-        userInput: text
-      });
+      // Ajouter le message utilisateur à l'historique
+      const newUserMessage = { role: 'user' as const, content: text };
+      setConversationHistory(prev => [...prev, newUserMessage]);
+
+      let response: string;
+
+      // Utiliser Ollama si activé et disponible
+      if (ollamaConfig.enabled && ollamaAvailable && ollamaConfig.selectedModel) {
+        console.log(`🦙 Utilisation d'Ollama avec le modèle: ${ollamaConfig.selectedModel}`);
+        
+        // Adapter le prompt système selon la personnalité et la langue
+        const personalityPrompt = language === 'ar' 
+          ? `أنت مساعد ذكي ودود. تكلم باللغة العربية فقط.`
+          : `Tu es un assistant IA ${initialPersonality} et ${gender === 'male' ? 'masculin' : 'féminin'}. Réponds en français uniquement.`;
+        
+        // Mettre à jour le prompt système si nécessaire
+        const enhancedConfig = {
+          ...ollamaConfig,
+          systemPrompt: `${personalityPrompt}\n\n${ollamaConfig.systemPrompt}`
+        };
+        
+        response = await generateOllamaResponse(text, conversationHistory);
+      } else {
+        // Fallback vers le générateur simple
+        console.log(`💭 Utilisation du générateur simple (Ollama non disponible)`);
+        response = responseGeneratorRef.current.generateResponse({
+          language,
+          userInput: text
+        });
+      }
+      
+      // Ajouter la réponse à l'historique
+      const assistantMessage = { role: 'assistant' as const, content: response };
+      setConversationHistory(prev => [...prev, assistantMessage]);
+      
+      // Limiter l'historique à 20 messages (10 échanges)
+      setConversationHistory(prev => prev.length > 20 ? prev.slice(-20) : prev);
       
       console.log(`✅ Réponse générée en ${language} pour ${gender}: "${response}"`);
       return response;
@@ -53,7 +104,7 @@ export const useDiscussionEngine = (
         : 'Désolé, une erreur est survenue lors du traitement de votre message.';
       return fallback;
     }
-  }, [gender]);
+  }, [gender, ollamaConfig, ollamaAvailable, generateOllamaResponse, conversationHistory, initialPersonality]);
 
   const interrupt = useCallback(() => {
     if (discussionEngineRef.current) {
@@ -68,6 +119,8 @@ export const useDiscussionEngine = (
       discussionEngineRef.current = new DiscussionEngine(initialPersonality);
       discussionEngineRef.current.setStateChangeCallback(setEngineState);
     }
+    // Réinitialiser l'historique Ollama
+    setConversationHistory([]);
   }, [initialPersonality]);
 
   const changePersonality = useCallback((personalityId: PersonalityId) => {
@@ -112,6 +165,16 @@ export const useDiscussionEngine = (
     resetConversation,
     getConversationExport,
     changePersonality,
-    getCurrentPersonality
+    getCurrentPersonality,
+    // Nouvelles propriétés Ollama
+    ollama: {
+      isAvailable: ollamaAvailable,
+      models: ollamaModels,
+      isLoading: ollamaLoading,
+      config: ollamaConfig,
+      updateConfig: updateOllamaConfig,
+      refreshModels: refreshOllamaModels,
+      checkAvailability: checkOllamaAvailability
+    }
   };
 };
