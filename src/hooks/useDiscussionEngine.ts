@@ -1,11 +1,14 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { PersonalityId } from '@/types/personality';
 import { SupportedLanguage } from '@/types/speechRecognition';
+import { Gender } from '@/types/gender';
 import { DiscussionEngine } from '@/services/DiscussionEngine';
 import { SimpleResponseGenerator } from '@/services/SimpleResponseGenerator';
 
-export const useDiscussionEngine = (initialPersonality: PersonalityId = 'friendly') => {
+export const useDiscussionEngine = (
+  initialPersonality: PersonalityId = 'friendly',
+  gender: Gender = 'male'
+) => {
   const discussionEngineRef = useRef<DiscussionEngine | null>(null);
   const responseGeneratorRef = useRef<SimpleResponseGenerator>(new SimpleResponseGenerator());
   
@@ -15,27 +18,34 @@ export const useDiscussionEngine = (initialPersonality: PersonalityId = 'friendl
     emotionalState: 'neutral' as 'neutral' | 'happy' | 'thinking' | 'listening'
   });
 
-  // Initialiser le moteur
+  // Initialiser le moteur avec le genre
   useEffect(() => {
     if (!discussionEngineRef.current) {
-      discussionEngineRef.current = new DiscussionEngine(initialPersonality);
+      discussionEngineRef.current = new DiscussionEngine(initialPersonality, gender);
       discussionEngineRef.current.setStateChangeCallback(setEngineState);
-      console.log('🚀 Discussion engine initialisé avec support multilingue');
+      console.log(`🚀 Discussion engine initialisé avec support multilingue et genre: ${gender}`);
     }
-  }, [initialPersonality]);
+  }, [initialPersonality, gender]);
+
+  // Mettre à jour le genre quand il change
+  useEffect(() => {
+    if (discussionEngineRef.current) {
+      discussionEngineRef.current.setGender(gender);
+      console.log(`👤 Genre mis à jour: ${gender}`);
+    }
+  }, [gender]);
 
   const processMessage = useCallback(async (text: string, language: SupportedLanguage = 'fr'): Promise<string> => {
-    console.log(`🧠 Traitement du message en ${language}: "${text}"`);
+    console.log(`🧠 Traitement du message en ${language} pour genre ${gender}: "${text}"`);
     
-    // Pour l'instant, utiliser le générateur de réponses simple avec support multilingue
-    // Plus tard, le DiscussionEngine pourra être étendu pour le multilinguisme
     try {
       const response = responseGeneratorRef.current.generateResponse({
         language,
-        userInput: text
+        userInput: text,
+        gender
       });
       
-      console.log(`✅ Réponse générée en ${language}: "${response}"`);
+      console.log(`✅ Réponse générée en ${language} pour ${gender}: "${response}"`);
       return response;
     } catch (error) {
       console.error('❌ Erreur génération réponse:', error);
@@ -44,7 +54,7 @@ export const useDiscussionEngine = (initialPersonality: PersonalityId = 'friendl
         : 'Désolé, une erreur est survenue lors du traitement de votre message.';
       return fallback;
     }
-  }, []);
+  }, [gender]);
 
   const interrupt = useCallback(() => {
     if (discussionEngineRef.current) {

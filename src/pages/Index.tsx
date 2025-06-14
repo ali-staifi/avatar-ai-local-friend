@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
 import { ChatInterface } from '@/components/ChatInterface';
@@ -130,6 +129,7 @@ const Index = () => {
             onEmotionChange={setEmotion}
             onPersonalityChange={setCurrentPersonality}
             currentPersonality={currentPersonality}
+            currentGender={currentGender}
             onLanguageChange={setCurrentLanguage}
           />
         </div>

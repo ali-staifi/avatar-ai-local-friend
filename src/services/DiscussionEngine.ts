@@ -1,4 +1,5 @@
 import { PERSONALITY_TRAITS, PersonalityTrait, PersonalityId } from '@/types/personality';
+import { Gender } from '@/types/gender';
 import { IntentRecognition, Intent } from './IntentRecognition';
 import { DialogueManager, DialogueResponse } from './DialogueManager';
 import { ResponseEnhancer, EnhancedResponse } from './ResponseEnhancer';
@@ -33,6 +34,7 @@ export class DiscussionEngine {
   private memory: ConversationMemory;
   private state: DiscussionState;
   private currentPersonality: PersonalityTrait;
+  private currentGender: Gender;
   private interruptionCallback?: () => void;
   private stateChangeCallback?: (state: DiscussionState) => void;
 
@@ -41,7 +43,7 @@ export class DiscussionEngine {
   private dialogueManager: DialogueManager;
   private responseEnhancer: ResponseEnhancer;
 
-  constructor(personalityId: PersonalityId = 'friendly') {
+  constructor(personalityId: PersonalityId = 'friendly', gender: Gender = 'male') {
     this.memory = {
       id: this.generateConversationId(),
       messages: [],
@@ -60,13 +62,21 @@ export class DiscussionEngine {
     };
 
     this.currentPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId) || PERSONALITY_TRAITS[0];
+    this.currentGender = gender;
     
-    // Initialiser les nouveaux services
+    // Initialiser les nouveaux services avec le genre
     this.intentRecognition = new IntentRecognition();
-    this.dialogueManager = new DialogueManager(this.currentPersonality);
-    this.responseEnhancer = new ResponseEnhancer(this.currentPersonality);
+    this.dialogueManager = new DialogueManager(this.currentPersonality, gender);
+    this.responseEnhancer = new ResponseEnhancer(this.currentPersonality, gender);
 
-    console.log('🚀 Moteur de discussion avancé initialisé avec les services Rasa-like');
+    console.log(`🚀 Moteur de discussion avancé initialisé avec genre: ${gender}`);
+  }
+
+  public setGender(gender: Gender) {
+    this.currentGender = gender;
+    this.dialogueManager.setGender(gender);
+    this.responseEnhancer.setGender(gender);
+    console.log(`👤 Genre du moteur mis à jour: ${gender}`);
   }
 
   private generateConversationId(): string {

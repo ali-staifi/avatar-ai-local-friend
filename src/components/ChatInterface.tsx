@@ -10,10 +10,12 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatMainContent } from '@/components/chat/ChatMainContent';
 import { ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
+import { Gender } from '@/types/gender';
 import { SupportedLanguage } from '@/types/speechRecognition';
 
 interface ExtendedChatInterfaceProps extends ChatInterfaceProps {
   currentPersonality?: PersonalityId;
+  currentGender?: Gender;
   onLanguageChange?: (language: SupportedLanguage) => void;
 }
 
@@ -23,6 +25,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   onEmotionChange,  
   onPersonalityChange,
   currentPersonality = 'friendly',
+  currentGender = 'male',
   onLanguageChange
 }) => {
   // Chat state management
@@ -39,7 +42,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   // Speech configuration
   const { speechConfig, updateSpeechConfig } = useChatSpeechConfig();
 
-  // Discussion engine with language support
+  // Discussion engine avec support du genre
   const {
     engineState,
     memoryStats,
@@ -49,13 +52,13 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     getConversationExport,
     changePersonality,
     getCurrentPersonality
-  } = useDiscussionEngine(currentPersonality);
+  } = useDiscussionEngine(currentPersonality, currentGender);
 
   // Enhanced processMessage that includes language
   const processMessage = useCallback(async (text: string, language?: 'fr' | 'ar') => {
-    console.log(`🧠 Traitement avec langue: ${language || 'auto'}`);
+    console.log(`🧠 Traitement avec langue: ${language || 'auto'} et genre: ${currentGender}`);
     return await processMessageWithPersonality(text, language);
-  }, [processMessageWithPersonality]);
+  }, [processMessageWithPersonality, currentGender]);
 
   // Update personality when it changes
   useEffect(() => {
