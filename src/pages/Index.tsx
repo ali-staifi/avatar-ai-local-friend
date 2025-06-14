@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Avatar3D } from '@/components/Avatar3D';
+import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
 import { ChatInterface } from '@/components/ChatInterface';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ const Index = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [emotion, setEmotion] = useState<'neutral' | 'happy' | 'thinking'>('neutral');
+
+  console.log('Index component state:', { isListening, isSpeaking, emotion });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -45,7 +47,7 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-              <Avatar3D 
+              <Avatar3DWrapper 
                 isListening={isListening}
                 isSpeaking={isSpeaking}
                 emotion={emotion}
