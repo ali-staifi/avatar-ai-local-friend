@@ -1,5 +1,5 @@
 
-import React, { Suspense, ErrorBoundary } from 'react';
+import React, { Suspense } from 'react';
 import { Avatar3D } from '@/components/Avatar3D';
 
 interface Avatar3DWrapperProps {
