@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
@@ -12,6 +11,7 @@ import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { SpeechEngineSelector } from '@/components/speech/SpeechEngineSelector';
+import { LanguageSelector } from '@/components/speech/LanguageSelector';
 import { ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
 
@@ -143,65 +143,77 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   }, [handleSendMessage, inputText]);
 
   return (
-    <div className="space-y-4">
-      {showEngineSelector && (
-        <SpeechEngineSelector
-          currentEngine={currentEngine}
+    <div className="flex gap-4 h-full">
+      {/* Sélecteur de langue */}
+      <div className="w-80 flex-shrink-0">
+        <LanguageSelector
           currentLanguage={currentLanguage}
-          onEngineChange={switchEngine}
           onLanguageChange={switchLanguage}
-          engineInfo={engineInfo}
-          isListening={isListening}
-          engineStatus={engineStatus}
-          vadEnabled={vadEnabled}
-          onToggleVAD={toggleVAD}
-          vadSupported={vadSupported}
-          vadListening={vadListening}
-          bufferStatus={bufferStatus}
+          disabled={isListening}
         />
-      )}
+      </div>
 
-      <Card className="h-full flex flex-col">
-        <ChatHeader 
-          speechEnabled={speechEnabled}
-          onToggleSpeech={setSpeechEnabled}
-          onResetConversation={handleResetConversation}
-          onExportConversation={handleExportConversation}
-          memoryStats={memoryStats}
-          engineState={engineState}
-          currentPersonality={getCurrentPersonality()}
-          onToggleEngineSelector={toggleEngineSelector}
-          showEngineSelector={showEngineSelector}
-          speechEngine={currentEngine}
-          speechLanguage={currentLanguage}
-          speechEngineStatus={engineStatus}
-          vadSupported={vadSupported}
-        />
-        
-        <CardContent className="flex-1 flex flex-col gap-4">
-          <MessageList 
-            messages={messages}
-            isThinking={engineState.isProcessing}
-          />
-
-          <ChatInput
-            inputText={inputText}
-            setInputText={setInputText}
-            onSendMessage={handleSendMessageWrapper}
-            onToggleListening={toggleListening}
-            isListening={isListening}
-            isSpeaking={isSpeaking}
-            canBeInterrupted={engineState.canBeInterrupted}
+      {/* Interface de chat principale */}
+      <div className="flex-1 space-y-4">
+        {showEngineSelector && (
+          <SpeechEngineSelector
             currentEngine={currentEngine}
-            engineStatus={engineStatus}
             currentLanguage={currentLanguage}
+            onEngineChange={switchEngine}
+            onLanguageChange={switchLanguage}
+            engineInfo={engineInfo}
+            isListening={isListening}
+            engineStatus={engineStatus}
             vadEnabled={vadEnabled}
+            onToggleVAD={toggleVAD}
             vadSupported={vadSupported}
             vadListening={vadListening}
             bufferStatus={bufferStatus}
           />
-        </CardContent>
-      </Card>
+        )}
+
+        <Card className="h-full flex flex-col">
+          <ChatHeader 
+            speechEnabled={speechEnabled}
+            onToggleSpeech={setSpeechEnabled}
+            onResetConversation={handleResetConversation}
+            onExportConversation={handleExportConversation}
+            memoryStats={memoryStats}
+            engineState={engineState}
+            currentPersonality={getCurrentPersonality()}
+            onToggleEngineSelector={toggleEngineSelector}
+            showEngineSelector={showEngineSelector}
+            speechEngine={currentEngine}
+            speechLanguage={currentLanguage}
+            speechEngineStatus={engineStatus}
+            vadSupported={vadSupported}
+          />
+          
+          <CardContent className="flex-1 flex flex-col gap-4">
+            <MessageList 
+              messages={messages}
+              isThinking={engineState.isProcessing}
+            />
+
+            <ChatInput
+              inputText={inputText}
+              setInputText={setInputText}
+              onSendMessage={handleSendMessageWrapper}
+              onToggleListening={toggleListening}
+              isListening={isListening}
+              isSpeaking={isSpeaking}
+              canBeInterrupted={engineState.canBeInterrupted}
+              currentEngine={currentEngine}
+              engineStatus={engineStatus}
+              currentLanguage={currentLanguage}
+              vadEnabled={vadEnabled}
+              vadSupported={vadSupported}
+              vadListening={vadListening}
+              bufferStatus={bufferStatus}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
