@@ -1,11 +1,13 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useHybridSpeechRecognition, SpeechEngine, SupportedLanguage } from '@/hooks/useHybridSpeechRecognition';
 import { useDiscussionEngine } from '@/hooks/useDiscussionEngine';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { SpeechEngineSelector } from '@/components/speech/SpeechEngineSelector';
 import { Message, ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
 import { toast } from 'sonner';
@@ -24,12 +26,22 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Bonjour ! Je suis votre assistant avatar AI local avec des personnalités multiples et une mémoire conversationnelle avancée. Comment puis-je vous aider aujourd\'hui ?',
+      text: 'Bonjour ! Je suis votre assistant avatar AI avec reconnaissance vocale hybride (Web Speech + Vosk offline) et support multilingue français/arabe. Comment puis-je vous aider aujourd\'hui ?',
       isUser: false,
       timestamp: new Date()
     }
   ]);
   const [inputText, setInputText] = useState('');
+  const [showEngineSelector, setShowEngineSelector] = useState(false);
+
+  // Configuration initiale du moteur hybride
+  const [speechConfig, setSpeechConfig] = useState<{
+    engine: SpeechEngine;
+    language: SupportedLanguage;
+  }>({
+    engine: 'web-speech',
+    language: 'fr'
+  });
 
   // Utiliser le nouveau moteur de discussion avec personnalité
   const {
@@ -51,12 +63,26 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
   }, [currentPersonality, changePersonality]);
 
   const handleSpeechResult = useCallback((transcript: string) => {
+    console.log(`🎤 Transcription reçue (${speechConfig.engine}/${speechConfig.language}):`, transcript);
     setInputText(transcript);
     handleSendMessage(transcript);
-  }, []);
+  }, [speechConfig]);
 
-  const { isListening, toggleListening } = useSpeechRecognition(handleSpeechResult);
-  
+  // Utiliser le hook hybride
+  const {
+    isListening,
+    toggleListening,
+    currentEngine,
+    currentLanguage,
+    switchEngine,
+    switchLanguage,
+    engineStatus,
+    engineInfo
+  } = useHybridSpeechRecognition(handleSpeechResult, {
+    engine: speechConfig.engine,
+    language: speechConfig.language
+  });
+
   const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
 
   // Gestion de l'interruption pendant la synthèse vocale
@@ -67,6 +93,11 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
       interrupt();
     }
   }, [isListening, isSpeaking, engineState.isProcessing, interrupt]);
+
+  // Synchroniser les états
+  useEffect(() => {
+    setSpeechConfig({ engine: currentEngine, language: currentLanguage });
+  }, [currentEngine, currentLanguage]);
 
   // Update parent component when states change
   useEffect(() => {
@@ -134,22 +165,29 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     setMessages([
       {
         id: Date.now().toString(),
-        text: `Conversation réinitialisée avec la personnalité ${personality.name} ! ${personality.speechPattern[0]} Je suis prêt pour une nouvelle discussion.`,
+        text: `Conversation réinitialisée avec la personnalité ${personality.name} ! ${personality.speechPattern[0]} Je suis prêt pour une nouvelle discussion en ${currentLanguage === 'fr' ? 'français' : 'arabe'}.`,
         isUser: false,
         timestamp: new Date()
       }
     ]);
     toast.success("Conversation réinitialisée", {
-      description: `Nouvelle conversation avec la personnalité ${personality.name}.`
+      description: `Nouvelle conversation avec ${personality.name} en ${currentLanguage === 'fr' ? 'français' : 'arabe'}.`
     });
-  }, [resetConversation, currentPersonality, getCurrentPersonality]);
+  }, [resetConversation, currentPersonality, getCurrentPersonality, currentLanguage]);
 
   const handleExportConversation = useCallback(() => {
-    const exportData = getConversationExport();
+    const exportData = {
+      ...getConversationExport(),
+      speechConfig: {
+        engine: currentEngine,
+        language: currentLanguage,
+        engineInfo
+      }
+    };
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `conversation_${exportData.conversationId}.json`;
+    const exportFileDefaultName = `conversation_${exportData.conversationId}_${currentEngine}_${currentLanguage}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -157,38 +195,62 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     linkElement.click();
     
     toast.success("Conversation exportée", {
-      description: "Le fichier de conversation a été téléchargé."
+      description: "Le fichier de conversation avec config vocale a été téléchargé."
     });
-  }, [getConversationExport]);
+  }, [getConversationExport, currentEngine, currentLanguage, engineInfo]);
 
   return (
-    <Card className="h-full flex flex-col">
-      <ChatHeader 
-        speechEnabled={speechEnabled}
-        onToggleSpeech={setSpeechEnabled}
-        onResetConversation={handleResetConversation}
-        onExportConversation={handleExportConversation}
-        memoryStats={memoryStats}
-        engineState={engineState}
-        currentPersonality={getCurrentPersonality()}
-      />
-      
-      <CardContent className="flex-1 flex flex-col gap-4">
-        <MessageList 
-          messages={messages}
-          isThinking={engineState.isProcessing}
-        />
-
-        <ChatInput
-          inputText={inputText}
-          setInputText={setInputText}
-          onSendMessage={() => handleSendMessage()}
-          onToggleListening={toggleListening}
+    <div className="space-y-4">
+      {/* Sélecteur de moteur de reconnaissance (collapsible) */}
+      {showEngineSelector && (
+        <SpeechEngineSelector
+          currentEngine={currentEngine}
+          currentLanguage={currentLanguage}
+          onEngineChange={switchEngine}
+          onLanguageChange={switchLanguage}
+          engineInfo={engineInfo}
           isListening={isListening}
-          isSpeaking={isSpeaking}
-          canBeInterrupted={engineState.canBeInterrupted}
+          engineStatus={engineStatus}
         />
-      </CardContent>
-    </Card>
+      )}
+
+      <Card className="h-full flex flex-col">
+        <ChatHeader 
+          speechEnabled={speechEnabled}
+          onToggleSpeech={setSpeechEnabled}
+          onResetConversation={handleResetConversation}
+          onExportConversation={handleExportConversation}
+          memoryStats={memoryStats}
+          engineState={engineState}
+          currentPersonality={getCurrentPersonality()}
+          // Nouvelles props pour le système hybride
+          onToggleEngineSelector={() => setShowEngineSelector(!showEngineSelector)}
+          showEngineSelector={showEngineSelector}
+          speechEngine={currentEngine}
+          speechLanguage={currentLanguage}
+          speechEngineStatus={engineStatus}
+        />
+        
+        <CardContent className="flex-1 flex flex-col gap-4">
+          <MessageList 
+            messages={messages}
+            isThinking={engineState.isProcessing}
+          />
+
+          <ChatInput
+            inputText={inputText}
+            setInputText={setInputText}
+            onSendMessage={() => handleSendMessage()}
+            onToggleListening={toggleListening}
+            isListening={isListening}
+            isSpeaking={isSpeaking}
+            canBeInterrupted={engineState.canBeInterrupted}
+            currentEngine={currentEngine}
+            engineStatus={engineStatus}
+            currentLanguage={currentLanguage}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 };
