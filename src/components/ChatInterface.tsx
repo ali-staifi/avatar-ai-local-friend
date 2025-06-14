@@ -1,5 +1,5 @@
+
 import React, { useCallback, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useHybridSpeechRecognition } from '@/hooks/useHybridSpeechRecognition';
 import { useDiscussionEngine } from '@/hooks/useDiscussionEngine';
@@ -7,11 +7,8 @@ import { useChatState } from '@/hooks/useChatState';
 import { useChatSpeechConfig } from '@/hooks/useChatSpeechConfig';
 import { useChatMessageHandler } from '@/hooks/useChatMessageHandler';
 import { useChatActions } from '@/hooks/useChatActions';
-import { ChatHeader } from '@/components/chat/ChatHeader';
-import { MessageList } from '@/components/chat/MessageList';
-import { ChatInput } from '@/components/chat/ChatInput';
-import { SpeechEngineSelector } from '@/components/speech/SpeechEngineSelector';
-import { LanguageSelector } from '@/components/speech/LanguageSelector';
+import { ChatSidebar } from '@/components/chat/ChatSidebar';
+import { ChatMainContent } from '@/components/chat/ChatMainContent';
 import { ChatInterfaceProps } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
 
@@ -144,76 +141,42 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
 
   return (
     <div className="flex gap-4 h-full">
-      {/* Sélecteur de langue */}
-      <div className="w-80 flex-shrink-0">
-        <LanguageSelector
-          currentLanguage={currentLanguage}
-          onLanguageChange={switchLanguage}
-          disabled={isListening}
-        />
-      </div>
+      <ChatSidebar
+        currentLanguage={currentLanguage}
+        onLanguageChange={switchLanguage}
+        isListening={isListening}
+      />
 
-      {/* Interface de chat principale */}
-      <div className="flex-1 space-y-4">
-        {showEngineSelector && (
-          <SpeechEngineSelector
-            currentEngine={currentEngine}
-            currentLanguage={currentLanguage}
-            onEngineChange={switchEngine}
-            onLanguageChange={switchLanguage}
-            engineInfo={engineInfo}
-            isListening={isListening}
-            engineStatus={engineStatus}
-            vadEnabled={vadEnabled}
-            onToggleVAD={toggleVAD}
-            vadSupported={vadSupported}
-            vadListening={vadListening}
-            bufferStatus={bufferStatus}
-          />
-        )}
-
-        <Card className="h-full flex flex-col">
-          <ChatHeader 
-            speechEnabled={speechEnabled}
-            onToggleSpeech={setSpeechEnabled}
-            onResetConversation={handleResetConversation}
-            onExportConversation={handleExportConversation}
-            memoryStats={memoryStats}
-            engineState={engineState}
-            currentPersonality={getCurrentPersonality()}
-            onToggleEngineSelector={toggleEngineSelector}
-            showEngineSelector={showEngineSelector}
-            speechEngine={currentEngine}
-            speechLanguage={currentLanguage}
-            speechEngineStatus={engineStatus}
-            vadSupported={vadSupported}
-          />
-          
-          <CardContent className="flex-1 flex flex-col gap-4">
-            <MessageList 
-              messages={messages}
-              isThinking={engineState.isProcessing}
-            />
-
-            <ChatInput
-              inputText={inputText}
-              setInputText={setInputText}
-              onSendMessage={handleSendMessageWrapper}
-              onToggleListening={toggleListening}
-              isListening={isListening}
-              isSpeaking={isSpeaking}
-              canBeInterrupted={engineState.canBeInterrupted}
-              currentEngine={currentEngine}
-              engineStatus={engineStatus}
-              currentLanguage={currentLanguage}
-              vadEnabled={vadEnabled}
-              vadSupported={vadSupported}
-              vadListening={vadListening}
-              bufferStatus={bufferStatus}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <ChatMainContent
+        messages={messages}
+        inputText={inputText}
+        setInputText={setInputText}
+        onSendMessage={handleSendMessageWrapper}
+        isListening={isListening}
+        isSpeaking={isSpeaking}
+        onToggleListening={toggleListening}
+        speechEnabled={speechEnabled}
+        onToggleSpeech={setSpeechEnabled}
+        showEngineSelector={showEngineSelector}
+        onToggleEngineSelector={toggleEngineSelector}
+        currentEngine={currentEngine}
+        currentLanguage={currentLanguage}
+        onEngineChange={switchEngine}
+        onLanguageChange={switchLanguage}
+        engineStatus={engineStatus}
+        engineInfo={engineInfo}
+        vadEnabled={vadEnabled}
+        onToggleVAD={toggleVAD}
+        vadSupported={vadSupported}
+        vadListening={vadListening}
+        bufferStatus={bufferStatus}
+        engineState={engineState}
+        memoryStats={memoryStats}
+        currentPersonality={getCurrentPersonality()}
+        onResetConversation={handleResetConversation}
+        onExportConversation={handleExportConversation}
+        canBeInterrupted={engineState.canBeInterrupted}
+      />
     </div>
   );
 };
