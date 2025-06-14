@@ -1,6 +1,7 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { OllamaService, OllamaModel } from '@/services/OllamaService';
+
+export type { OllamaModel } from '@/services/OllamaService';
 
 export interface OllamaConfig {
   enabled: boolean;
