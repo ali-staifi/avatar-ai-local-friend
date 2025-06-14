@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect } from 'react';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useHybridSpeechRecognition } from '@/hooks/useHybridSpeechRecognition';
@@ -88,7 +89,12 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     vadEnabled: true
   });
 
-  const { isSpeaking, speechEnabled, setSpeechEnabled, speak } = useSpeechSynthesis();
+  const { isSpeaking, speechEnabled, setSpeechEnabled, speak, updateLanguage } = useSpeechSynthesis();
+
+  // Synchroniser la langue de synthèse vocale avec celle de reconnaissance
+  useEffect(() => {
+    updateLanguage(currentLanguage);
+  }, [currentLanguage, updateLanguage]);
 
   // Message handling with language support
   const { handleSendMessage } = useChatMessageHandler({

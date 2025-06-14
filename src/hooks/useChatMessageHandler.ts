@@ -10,7 +10,7 @@ interface UseChatMessageHandlerProps {
   setInputText: (text: string) => void;
   processMessage: (text: string, language?: SupportedLanguage) => Promise<string>;
   speechEnabled: boolean;
-  speak: (text: string, onStart?: () => void, onEnd?: () => void) => void;
+  speak: (text: string, onStart?: () => void, onEnd?: () => void, language?: SupportedLanguage) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking' | 'listening') => void;
   currentLanguage: SupportedLanguage;
@@ -55,21 +55,27 @@ export const useChatMessageHandler = ({
 
       addMessage(aiMessage);
       
-      // Synthèse vocale de la réponse avec gestion d'interruption
+      // Synthèse vocale de la réponse avec la langue appropriée
       if (speechEnabled) {
+        console.log(`🎤 Synthèse vocale de la réponse en ${currentLanguage}: "${response}"`);
         speak(
           response,
           () => onSpeakingChange(true),
           () => {
             onSpeakingChange(false);
             onEmotionChange('neutral');
-          }
+          },
+          currentLanguage // Passer la langue à la synthèse vocale
         );
       }
     } catch (error) {
       console.error('❌ Erreur lors du traitement du message:', error);
-      toast.error("Erreur", {
-        description: "Impossible de traiter votre message. Veuillez réessayer."
+      const errorMsg = currentLanguage === 'ar' 
+        ? "خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى."
+        : "Impossible de traiter votre message. Veuillez réessayer.";
+      
+      toast.error(currentLanguage === 'ar' ? "خطأ" : "Erreur", {
+        description: errorMsg
       });
     }
   }, [addMessage, setInputText, processMessage, speechEnabled, speak, onSpeakingChange, onEmotionChange, currentLanguage]);
