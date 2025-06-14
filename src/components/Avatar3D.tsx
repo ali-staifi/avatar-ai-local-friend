@@ -1,11 +1,8 @@
 
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Text, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
-
-// Extend Three.js objects
-extend({ SphereGeometry: THREE.SphereGeometry, MeshStandardMaterial: THREE.MeshStandardMaterial });
 
 interface AvatarProps {
   isListening: boolean;
@@ -17,12 +14,6 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const eyeLeftRef = useRef<THREE.Mesh>(null);
   const eyeRightRef = useRef<THREE.Mesh>(null);
-
-  // Create geometries and materials with useMemo for performance
-  const sphereGeometry = useMemo(() => new THREE.SphereGeometry(1, 32, 32), []);
-  const eyeGeometry = useMemo(() => new THREE.SphereGeometry(0.12, 16, 16), []);
-  const pupilGeometry = useMemo(() => new THREE.SphereGeometry(0.06, 16, 16), []);
-  const mouthGeometry = useMemo(() => new THREE.SphereGeometry(0.08, 16, 16), []);
 
   const getColor = () => {
     switch (emotion) {
@@ -37,26 +28,6 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
     if (isListening) return 0.2;
     return 0.1;
   };
-
-  const mainMaterial = useMemo(() => 
-    new THREE.MeshStandardMaterial({
-      color: getColor(),
-      transparent: true,
-      opacity: 0.85,
-      emissive: new THREE.Color(getColor()),
-      emissiveIntensity: getEmissiveIntensity(),
-      roughness: 0.3,
-      metalness: 0.1
-    }), [emotion, isSpeaking, isListening]);
-
-  const eyeMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: 'white' }), []);
-  const pupilMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a' }), []);
-  const mouthMaterial = useMemo(() => 
-    new THREE.MeshStandardMaterial({
-      color: '#ef4444',
-      emissive: new THREE.Color('#ef4444'),
-      emissiveIntensity: 0.3
-    }), []);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -91,19 +62,43 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
   return (
     <group>
       {/* Corps principal */}
-      <mesh ref={meshRef} geometry={sphereGeometry} material={mainMaterial} position={[0, 0, 0]} />
+      <Sphere ref={meshRef} args={[1, 32, 32]} position={[0, 0, 0]}>
+        <meshStandardMaterial
+          color={getColor()}
+          transparent
+          opacity={0.85}
+          emissive={getColor()}
+          emissiveIntensity={getEmissiveIntensity()}
+          roughness={0.3}
+          metalness={0.1}
+        />
+      </Sphere>
       
       {/* Yeux */}
-      <mesh ref={eyeLeftRef} geometry={eyeGeometry} material={eyeMaterial} position={[-0.3, 0.3, 0.8]} />
-      <mesh ref={eyeRightRef} geometry={eyeGeometry} material={eyeMaterial} position={[0.3, 0.3, 0.8]} />
+      <Sphere ref={eyeLeftRef} args={[0.12, 16, 16]} position={[-0.3, 0.3, 0.8]}>
+        <meshStandardMaterial color="white" />
+      </Sphere>
+      <Sphere ref={eyeRightRef} args={[0.12, 16, 16]} position={[0.3, 0.3, 0.8]}>
+        <meshStandardMaterial color="white" />
+      </Sphere>
       
       {/* Pupilles */}
-      <mesh geometry={pupilGeometry} material={pupilMaterial} position={[-0.3, 0.3, 0.85]} />
-      <mesh geometry={pupilGeometry} material={pupilMaterial} position={[0.3, 0.3, 0.85]} />
+      <Sphere args={[0.06, 16, 16]} position={[-0.3, 0.3, 0.85]}>
+        <meshStandardMaterial color="#1a1a1a" />
+      </Sphere>
+      <Sphere args={[0.06, 16, 16]} position={[0.3, 0.3, 0.85]}>
+        <meshStandardMaterial color="#1a1a1a" />
+      </Sphere>
       
       {/* Bouche (si parle) */}
       {isSpeaking && (
-        <mesh geometry={mouthGeometry} material={mouthMaterial} position={[0, -0.2, 0.85]} />
+        <Sphere args={[0.08, 16, 16]} position={[0, -0.2, 0.85]}>
+          <meshStandardMaterial
+            color="#ef4444"
+            emissive="#ef4444"
+            emissiveIntensity={0.3}
+          />
+        </Sphere>
       )}
       
       {/* Indicateurs d'état */}
