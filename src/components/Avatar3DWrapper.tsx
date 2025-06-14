@@ -2,11 +2,14 @@
 import React, { Suspense } from 'react';
 import { Avatar3D } from '@/components/Avatar3D';
 import { SimpleAvatar } from '@/components/SimpleAvatar';
+import { FemaleAvatar } from '@/components/FemaleAvatar';
+import { Gender } from '@/types/gender';
 
 interface Avatar3DWrapperProps {
   isListening: boolean;
   isSpeaking: boolean;
   emotion: 'neutral' | 'happy' | 'thinking';
+  gender?: Gender;
 }
 
 class Avatar3DErrorBoundary extends React.Component<
@@ -30,7 +33,8 @@ class Avatar3DErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       console.log('🔄 Basculement vers l\'avatar simple à cause d\'une erreur');
-      return <SimpleAvatar {...this.props.fallbackProps} />;
+      const { gender, ...otherProps } = this.props.fallbackProps;
+      return gender === 'female' ? <FemaleAvatar {...otherProps} /> : <SimpleAvatar {...otherProps} />;
     }
 
     return this.props.children;
@@ -39,15 +43,21 @@ class Avatar3DErrorBoundary extends React.Component<
 
 export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps & Record<string, any>> = (allProps) => {
   // Filter out development-specific props that interfere with Three.js
-  const { isListening, isSpeaking, emotion, ...devProps } = allProps;
+  const { isListening, isSpeaking, emotion, gender = 'male', ...devProps } = allProps;
   
-  // Only pass the actual Avatar3D props, filtering out any data-* attributes
+  // Only pass the actual Avatar props, filtering out any data-* attributes
   const cleanProps = { isListening, isSpeaking, emotion };
   
-  console.log('Avatar3DWrapper rendering with clean props:', cleanProps);
+  console.log('Avatar3DWrapper rendering with clean props:', cleanProps, 'gender:', gender);
   
+  // Si le genre est féminin, utiliser le FemaleAvatar directement
+  if (gender === 'female') {
+    return <FemaleAvatar {...cleanProps} />;
+  }
+  
+  // Sinon, utiliser l'avatar 3D masculin avec fallback
   return (
-    <Avatar3DErrorBoundary fallbackProps={cleanProps}>
+    <Avatar3DErrorBoundary fallbackProps={{ ...cleanProps, gender }}>
       <Suspense fallback={<SimpleAvatar {...cleanProps} />}>
         <Avatar3D {...cleanProps} />
       </Suspense>

@@ -85,6 +85,7 @@ const Index = () => {
                 isListening={isListening}
                 isSpeaking={isSpeaking}
                 emotion={emotion === 'listening' ? 'thinking' : emotion}
+                gender={currentGender}
               />
               
               {/* Status Info */}
