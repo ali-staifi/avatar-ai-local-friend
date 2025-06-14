@@ -31,7 +31,7 @@ export const useVoskEngine = ({
   }, []);
 
   const simulateVoskTranscription = useCallback((audioSegment?: Float32Array) => {
-    console.log(`🎤 Vosk: Traitement segment${audioSegment ? ` (${(audioSegment.length / 16000).toFixed(2)}s)` : ''}`);
+    console.log(`🎤 Vosk: Traitement segment${audioSegment ? ` (${(audioSegment.length / 16000).toFixed(2)}s)` : ''} en ${language}`);
     
     const mockResults = {
       fr: [
@@ -46,30 +46,40 @@ export const useVoskEngine = ({
         "هل يمكنك مساعدتي؟", 
         "شكرا جزيلا لك",
         "أريد أن أعرف كيف أفعل هذا",
-        "حسنا، أفهم الآن"
+        "حسنا، أفهم الآن",
+        "أهلا وسهلا",
+        "ما اسمك؟",
+        "أين تسكن؟",
+        "كم عمرك؟",
+        "أحب تعلم العربية"
       ]
     };
     
     setTimeout(() => {
       const randomResult = mockResults[language][Math.floor(Math.random() * mockResults[language].length)];
-      console.log(`✅ Vosk: Transcription: "${randomResult}"`);
+      console.log(`✅ Vosk: Transcription ${language}: "${randomResult}"`);
       onResult(randomResult);
       onListeningChange(false);
       
-      if (audioSegment) {
-        toast.success("Transcription VAD+Vosk", {
-          description: `Segment analysé automatiquement: ${(audioSegment.length / 16000).toFixed(1)}s`
+      if (audioSegment && vadEnabled) {
+        toast.success(`Transcription ${language === 'ar' ? 'arabe' : 'française'} réussie`, {
+          description: `VAD+Vosk: ${(audioSegment.length / 16000).toFixed(1)}s analysé`
+        });
+      } else {
+        toast.success(`Reconnaissance ${language === 'ar' ? 'arabe' : 'française'}`, {
+          description: `Vosk: "${randomResult}"`
         });
       }
     }, 500 + Math.random() * 1000);
-  }, [language, onResult, onListeningChange]);
+  }, [language, onResult, onListeningChange, vadEnabled]);
 
   const initializeVosk = useCallback(async () => {
     try {
       setEngineStatus('loading');
       
       if (!voskModelManager.isModelLoaded(language)) {
-        toast.info(`Chargement du modèle ${language.toUpperCase()}`, {
+        const langName = language === 'ar' ? 'arabe' : 'français';
+        toast.info(`Chargement du modèle ${langName}`, {
           description: "Première utilisation, veuillez patienter..."
         });
         await voskModelManager.loadModel(language);
@@ -78,25 +88,34 @@ export const useVoskEngine = ({
       console.log(`🎤 Vosk initialisé pour ${language}${vadEnabled ? ' avec VAD' : ''}`);
       setEngineStatus('ready');
       
-      toast.success(`Vosk prêt en ${language.toUpperCase()}`, {
+      const langName = language === 'ar' ? 'arabe' : 'français';
+      toast.success(`Vosk prêt en ${langName}`, {
         description: `Reconnaissance vocale offline${vadEnabled ? ' avec détection automatique' : ''} disponible`
       });
     } catch (error) {
       console.error('Erreur initialisation Vosk:', error);
       setEngineStatus('error');
       toast.error("Erreur Vosk", {
-        description: "Impossible d'initialiser Vosk. Utilisez Web Speech API."
+        description: `Impossible d'initialiser Vosk pour l'${language === 'ar' ? 'arabe' : 'français'}. Utilisez Web Speech API.`
       });
     }
   }, [language, vadEnabled]);
 
   const startListening = useCallback(async () => {
     onListeningChange(true);
-    console.log(`🎤 Vosk démarré en ${language}${vadEnabled ? ' + VAD' : ''}`);
+    const langName = language === 'ar' ? 'arabe' : 'français';
+    console.log(`🎤 Vosk démarré en ${langName}${vadEnabled ? ' + VAD' : ''}`);
     
     if (!vadEnabled) {
-      // Fallback sans VAD pour Vosk (ancienne méthode)
+      // Fallback sans VAD pour Vosk
+      toast.info(`Écoute Vosk ${langName}`, {
+        description: "Parlez maintenant..."
+      });
       simulateVoskTranscription();
+    } else {
+      toast.info(`VAD + Vosk ${langName} actif`, {
+        description: "Parlez naturellement, la détection est automatique"
+      });
     }
     
     return true;

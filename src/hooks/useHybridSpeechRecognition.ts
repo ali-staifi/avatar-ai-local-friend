@@ -29,6 +29,27 @@ export const useHybridSpeechRecognition = (
     initialLanguage: config.language
   });
 
+  // Forcer Vosk + VAD pour l'arabe si Web Speech échoue
+  useEffect(() => {
+    if (currentLanguage === 'ar' && currentEngine === 'web-speech') {
+      console.log('🌐 Arabe détecté - recommandation Vosk + VAD pour une meilleure précision');
+      
+      toast.warning("Recommandation pour l'arabe", {
+        description: "Vosk + VAD est recommandé pour une meilleure reconnaissance en arabe",
+        action: {
+          label: "Activer Vosk + VAD",
+          onClick: () => {
+            switchEngine('vosk');
+            if (!vadEnabled) {
+              toggleVAD();
+            }
+          }
+        },
+        duration: 8000
+      });
+    }
+  }, [currentLanguage, currentEngine, vadEnabled, switchEngine, toggleVAD]);
+
   // VAD integration
   const {
     isInitialized: vadInitialized,
@@ -41,12 +62,12 @@ export const useHybridSpeechRecognition = (
     enabled: vadEnabled,
     sampleRate: 16000,
     frameSize: 30,
-    aggressiveness: 2,
+    aggressiveness: currentLanguage === 'ar' ? 3 : 2, // Plus agressif pour l'arabe
     bufferDuration: 3000,
-    silenceThreshold: 800,
-    voiceThreshold: 300,
+    silenceThreshold: currentLanguage === 'ar' ? 1000 : 800, // Plus de tolérance pour l'arabe
+    voiceThreshold: currentLanguage === 'ar' ? 400 : 300,
     onVoiceSegmentDetected: (audioSegment: Float32Array) => {
-      console.log(`🎯 VAD: Segment vocal détecté (${audioSegment.length} échantillons)`);
+      console.log(`🎯 VAD: Segment vocal détecté pour ${currentLanguage} (${audioSegment.length} échantillons)`);
       if (currentEngine === 'vosk' && audioSegment.length > 0) {
         voskEngine.simulateVoskTranscription(audioSegment);
       }
@@ -60,7 +81,6 @@ export const useHybridSpeechRecognition = (
     interimResults: config.interimResults || false,
     onResult,
     onListeningChange: (listening) => {
-      // Use setIsListening directly since listeningManager is defined below
       setIsListening(listening);
       if (!listening && vadEnabled && vadListening) {
         stopVAD();
@@ -72,13 +92,12 @@ export const useHybridSpeechRecognition = (
     language: currentLanguage,
     onResult,
     onListeningChange: (listening) => {
-      // Use setIsListening directly since listeningManager is defined below
       setIsListening(listening);
     },
     vadEnabled
   });
 
-  // Listening management - define setIsListening first
+  // Listening management
   const [isListening, setIsListening] = useState(false);
   
   const listeningManager = useSpeechListeningManager({
@@ -119,26 +138,54 @@ export const useHybridSpeechRecognition = (
     }
   }, [currentEngine, voskEngine.engineStatus, webSpeechEngine.isSupported]);
 
-  // Initialize Vosk when selected
+  // Initialize Vosk when selected or when Arabic is selected
   useEffect(() => {
-    if (currentEngine === 'vosk') {
+    if (currentEngine === 'vosk' || currentLanguage === 'ar') {
       voskEngine.initializeVosk();
     }
-  }, [currentEngine, voskEngine.initializeVosk]);
+  }, [currentEngine, currentLanguage, voskEngine.initializeVosk]);
 
   const handleEngineSwitch = useCallback((engine: SpeechEngine) => {
     if (isListening) {
       listeningManager.stopListening();
     }
+    
+    // Auto-activer VAD pour l'arabe avec Vosk
+    if (engine === 'vosk' && currentLanguage === 'ar' && !vadEnabled) {
+      toggleVAD();
+      toast.info("VAD activé automatiquement", {
+        description: "Recommandé pour la reconnaissance vocale en arabe"
+      });
+    }
+    
     switchEngine(engine);
-  }, [isListening, listeningManager.stopListening, switchEngine]);
+  }, [isListening, listeningManager.stopListening, switchEngine, currentLanguage, vadEnabled, toggleVAD]);
 
   const handleLanguageSwitch = useCallback((language: SupportedLanguage) => {
     if (isListening) {
       listeningManager.stopListening();
     }
+    
+    // Auto-suggestions pour l'arabe
+    if (language === 'ar') {
+      setTimeout(() => {
+        if (currentEngine === 'web-speech') {
+          toast.info("Suggestion pour l'arabe", {
+            description: "Vosk + VAD offre une meilleure reconnaissance en arabe",
+            action: {
+              label: "Passer à Vosk + VAD",
+              onClick: () => {
+                handleEngineSwitch('vosk');
+              }
+            },
+            duration: 10000
+          });
+        }
+      }, 1000);
+    }
+    
     switchLanguage(language);
-  }, [isListening, listeningManager.stopListening, switchLanguage]);
+  }, [isListening, listeningManager.stopListening, switchLanguage, currentEngine, handleEngineSwitch]);
 
   const handleVADToggle = useCallback(() => {
     if (isListening) {

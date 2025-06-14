@@ -139,6 +139,8 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
     handleSendMessage(undefined, inputText);
   }, [handleSendMessage, inputText]);
 
+  const currentPersonalityId = getCurrentPersonality();
+
   return (
     <div className="flex gap-4 h-full">
       <ChatSidebar
@@ -172,7 +174,7 @@ export const ChatInterface: React.FC<ExtendedChatInterfaceProps> = ({
         bufferStatus={bufferStatus}
         engineState={engineState}
         memoryStats={memoryStats}
-        currentPersonality={getCurrentPersonality()}
+        currentPersonality={currentPersonalityId}
         onResetConversation={handleResetConversation}
         onExportConversation={handleExportConversation}
         canBeInterrupted={engineState.canBeInterrupted}
