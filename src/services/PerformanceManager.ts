@@ -1,3 +1,4 @@
+import React from 'react';
 
 interface PerformanceMetric {
   name: string;
@@ -50,11 +51,12 @@ export class PerformanceManager {
     }
   }
 
-  public startTimer(name: string): () => void {
+  public startTimer(name: string): () => number {
     const startTime = performance.now();
     return () => {
       const duration = performance.now() - startTime;
       this.recordMetric(name, duration, 'interaction');
+      return duration;
     };
   }
 
@@ -128,12 +130,14 @@ export class PerformanceManager {
     component: React.ComponentType<T>,
     shouldUpdate?: (prevProps: T, nextProps: T) => boolean
   ): React.ComponentType<T> {
-    return React.memo(component, shouldUpdate ? (prevProps, nextProps) => {
+    const MemoizedComponent = React.memo(component, shouldUpdate ? (prevProps, nextProps) => {
       const timer = this.startTimer('memo_comparison');
       const result = !shouldUpdate(prevProps, nextProps);
       timer();
       return result;
     } : undefined);
+
+    return MemoizedComponent as React.ComponentType<T>;
   }
 
   public getPerformanceReport(): {

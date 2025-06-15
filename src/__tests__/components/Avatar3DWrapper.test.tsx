@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
 
@@ -37,12 +37,12 @@ describe('Avatar3DWrapper', () => {
   };
 
   it('renders without crashing', () => {
-    render(<Avatar3DWrapper {...defaultProps} />);
-    expect(screen.getByTestId(/avatar/)).toBeInTheDocument();
+    const { getByTestId } = render(<Avatar3DWrapper {...defaultProps} />);
+    expect(getByTestId(/avatar/)).toBeDefined();
   });
 
   it('passes props correctly to avatar components', () => {
-    render(
+    const { getByTestId } = render(
       <Avatar3DWrapper 
         isListening={true} 
         isSpeaking={false} 
@@ -50,19 +50,19 @@ describe('Avatar3DWrapper', () => {
       />
     );
     
-    const avatar = screen.getByTestId(/avatar/);
-    expect(avatar).toHaveTextContent('Listening: true');
-    expect(avatar).toHaveTextContent('Speaking: false');
-    expect(avatar).toHaveTextContent('Emotion: happy');
+    const avatar = getByTestId(/avatar/);
+    expect(avatar.textContent).toContain('Listening: true');
+    expect(avatar.textContent).toContain('Speaking: false');
+    expect(avatar.textContent).toContain('Emotion: happy');
   });
 
   it('renders female avatar when gender is female', () => {
-    render(<Avatar3DWrapper {...defaultProps} gender="female" />);
-    expect(screen.getByTestId('female-avatar')).toBeInTheDocument();
+    const { getByTestId } = render(<Avatar3DWrapper {...defaultProps} gender="female" />);
+    expect(getByTestId('female-avatar')).toBeDefined();
   });
 
   it('filters out development props', () => {
-    render(
+    const { getByTestId } = render(
       <Avatar3DWrapper 
         {...defaultProps} 
         data-testid="wrapper"
@@ -71,18 +71,18 @@ describe('Avatar3DWrapper', () => {
     );
     
     // Le composant devrait fonctionner même avec des props supplémentaires
-    expect(screen.getByTestId(/avatar/)).toBeInTheDocument();
+    expect(getByTestId(/avatar/)).toBeDefined();
   });
 
   it('handles different emotion states', () => {
     const emotions = ['neutral', 'happy', 'thinking'] as const;
     
     emotions.forEach(emotion => {
-      const { rerender } = render(
+      const { rerender, getByTestId } = render(
         <Avatar3DWrapper {...defaultProps} emotion={emotion} />
       );
       
-      expect(screen.getByTestId(/avatar/)).toHaveTextContent(`Emotion: ${emotion}`);
+      expect(getByTestId(/avatar/).textContent).toContain(`Emotion: ${emotion}`);
       
       if (emotion !== emotions[emotions.length - 1]) {
         rerender(<Avatar3DWrapper {...defaultProps} emotion={emotions[emotions.indexOf(emotion) + 1]} />);

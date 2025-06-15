@@ -1,6 +1,7 @@
 
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
+import { vi } from 'vitest';
 import { AdvancedErrorBoundary } from '@/components/error/AdvancedErrorBoundary';
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {

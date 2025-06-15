@@ -42,14 +42,14 @@ export const usePerformanceMonitor = (options: PerformanceHookOptions = {}) => {
   });
 
   // Utilitaires pour tracker les interactions
-  const trackInteraction = (actionName: string) => {
+  const trackInteraction = useCallback((actionName: string) => {
     if (!trackInteractions) return () => {};
     return performanceManager.startTimer(`${componentName}_${actionName}`);
-  };
+  }, [trackInteractions, componentName]);
 
-  const recordCustomMetric = (name: string, value: number) => {
+  const recordCustomMetric = useCallback((name: string, value: number) => {
     performanceManager.recordMetric(`${componentName}_${name}`, value, 'interaction');
-  };
+  }, [componentName]);
 
   return {
     performanceData,
