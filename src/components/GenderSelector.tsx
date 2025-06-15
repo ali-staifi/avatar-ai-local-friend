@@ -17,6 +17,14 @@ export const GenderSelector: React.FC<GenderSelectorProps> = ({
   onGenderChange,
   currentLanguage
 }) => {
+  console.log('🚺🚹 GenderSelector render avec:', { currentGender, currentLanguage });
+
+  const handleGenderChange = (value: string) => {
+    const newGender = value as Gender;
+    console.log('🚺🚹 Changement de genre:', currentGender, '->', newGender);
+    onGenderChange(newGender);
+  };
+
   const getGenderOptions = (language: SupportedLanguage): GenderOption[] => {
     if (language === 'ar') {
       return [
@@ -62,7 +70,7 @@ export const GenderSelector: React.FC<GenderSelectorProps> = ({
       <CardContent>
         <RadioGroup
           value={currentGender}
-          onValueChange={(value) => onGenderChange(value as Gender)}
+          onValueChange={handleGenderChange}
           className="flex gap-4"
         >
           {genderOptions.map((option) => (

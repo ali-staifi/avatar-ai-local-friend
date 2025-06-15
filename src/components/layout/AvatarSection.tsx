@@ -29,6 +29,8 @@ export const AvatarSection: React.FC<AvatarSectionProps> = ({
   getCurrentState,
   getGenderDisplayText
 }) => {
+  console.log('🎭 AvatarSection render avec gender:', currentGender);
+  
   return (
     <section aria-label="Avatar 3D et informations d'état">
       <Card className="flex flex-col">

@@ -23,7 +23,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   isSpeaking,
   emotion,
   gender = 'male',
-  enableLazyLoading = false, // Désactivé par défaut pour diagnostiquer
+  enableLazyLoading = false,
   intersectionThreshold = 0.1
 }) => {
   const [shouldLoad, setShouldLoad] = useState(!enableLazyLoading);
@@ -37,6 +37,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
     enableLazyLoading, 
     shouldLoad 
   });
+  console.log('🚺🚹 LazyAvatar3D - Genre analysé:', gender, 'Type:', typeof gender);
 
   // Intersection Observer pour le lazy loading
   useEffect(() => {
@@ -66,8 +67,9 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
 
   const avatarProps = { isListening, isSpeaking, emotion };
 
-  // Avatar féminin - pas de 3D, utilisation directe
+  // Avatar féminin - logique simplifiée et debug renforcé
   if (gender === 'female') {
+    console.log('✅ CONDITION FEMALE MATCHED - Rendu FemaleAvatar');
     console.log('👩 Rendu FemaleAvatar avec props:', avatarProps);
     return (
       <div ref={setContainerRef} className="w-full h-full">
@@ -86,7 +88,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   }
 
   // Avatar masculin avec lazy loading du 3D
-  console.log('👨 Rendu Avatar3D avec props:', avatarProps, 'shouldLoad:', shouldLoad);
+  console.log('👨 CONDITION MALE - Rendu Avatar3D avec props:', avatarProps, 'shouldLoad:', shouldLoad);
   return (
     <div ref={setContainerRef} className="w-full h-full">
       <AdvancedErrorBoundary 
