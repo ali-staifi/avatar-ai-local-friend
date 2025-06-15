@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useMaleAvatarAnimations } from './MaleAvatarAnimations';
-import { MaleAvatarBody, MaleAvatarHead } from './MaleAvatarGeometry';
+import { MaleAvatarBodyWrapper, MaleAvatarHead } from './MaleAvatarGeometry';
 
 interface MaleAvatarMeshProps {
   isListening: boolean;
@@ -50,7 +50,7 @@ export const MaleAvatarMesh: React.FC<MaleAvatarMeshProps> = ({
     <group>
       {/* Corps */}
       <group ref={bodyRef} position={[0, -1.5, 0]}>
-        <MaleAvatarBody />
+        <MaleAvatarBodyWrapper />
       </group>
 
       {/* Tête */}
