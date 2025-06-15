@@ -20,20 +20,20 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
   const vadRef = useRef<VoiceActivityDetector | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializingRef = useRef<boolean>(false);
+  const isListeningRef = useRef<boolean>(false);
 
-  // Initialiser le VAD
+  // Initialisation stable
   useEffect(() => {
-    if (options.enabled !== false && !isInitializingRef.current) {
+    if (options.enabled !== false && !isInitializingRef.current && !vadRef.current) {
       isInitializingRef.current = true;
       
-      // Configuration VAD optimisée pour meilleure détection
       const vadOptions = {
         sampleRate: 16000,
         frameSize: 30,
-        aggressiveness: 1, // Moins agressif pour éviter les coupures
+        aggressiveness: 1,
         bufferDuration: 3000,
-        silenceThreshold: 2000, // Plus tolérant au silence
-        voiceThreshold: 200, // Plus sensible à la voix
+        silenceThreshold: 2000,
+        voiceThreshold: 200,
         ...options
       };
 
@@ -42,9 +42,9 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
       vadRef.current.initialize().then((success) => {
         if (success) {
           setIsInitialized(true);
-          console.log('✅ VAD hook initialisé avec succès');
+          console.log('✅ VAD initialisé');
         } else {
-          console.error('❌ Échec initialisation VAD hook');
+          console.error('❌ Échec VAD');
         }
         isInitializingRef.current = false;
       }).catch((error) => {
@@ -58,19 +58,15 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
         clearInterval(statusIntervalRef.current);
         statusIntervalRef.current = null;
       }
-      if (vadRef.current) {
-        vadRef.current.destroy();
-        vadRef.current = null;
-      }
     };
   }, [options.enabled]);
 
-  // Configurer les callbacks pour les segments vocaux
+  // Configuration des callbacks une seule fois
   useEffect(() => {
     if (vadRef.current && options.onVoiceSegmentDetected && isInitialized) {
       const handleVoiceDetected = (result: VADResult) => {
         if (result.isVoice && result.audioSegment.length > 0) {
-          console.log(`🎤 Segment vocal détecté: ${result.audioSegment.length} échantillons, confiance: ${result.confidence}`);
+          console.log(`🎤 Segment vocal détecté: ${result.audioSegment.length} échantillons`);
           options.onVoiceSegmentDetected?.(result.audioSegment);
         }
       };
@@ -85,57 +81,37 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
     }
   }, [options.onVoiceSegmentDetected, isInitialized]);
 
-  // Surveiller le statut du buffer
-  useEffect(() => {
-    if (isListening && vadRef.current) {
-      statusIntervalRef.current = setInterval(() => {
-        if (vadRef.current && isListening) {
-          setBufferStatus(vadRef.current.getBufferStatus());
-        }
-      }, 500);
-
-      return () => {
-        if (statusIntervalRef.current) {
-          clearInterval(statusIntervalRef.current);
-          statusIntervalRef.current = null;
-        }
-      };
-    }
-  }, [isListening]);
-
   const startListening = useCallback(async () => {
-    if (!vadRef.current || !isInitialized) {
-      console.warn('⚠️ VAD non disponible pour démarrage');
+    if (!vadRef.current || !isInitialized || isListeningRef.current) {
       return false;
     }
 
     try {
       await vadRef.current.startListening();
       setIsListening(true);
-      console.log('🎤 VAD écoute démarrée avec succès');
-      
-      // REMOVED: Automatic notification that was obstructing the chat
-      // User specifically requested this removal
+      isListeningRef.current = true;
+      console.log('🎤 VAD démarré');
       return true;
     } catch (error) {
-      console.error('❌ Erreur démarrage VAD:', error);
+      console.error('❌ Erreur VAD:', error);
       return false;
     }
   }, [isInitialized]);
 
   const stopListening = useCallback(() => {
-    if (vadRef.current && isListening) {
+    if (vadRef.current && isListeningRef.current) {
       vadRef.current.stopListening();
       setIsListening(false);
+      isListeningRef.current = false;
       setBufferStatus({
         bufferUsage: 0,
         isInVoiceSegment: false,
         voiceDuration: 0,
         silenceDuration: 0
       });
-      console.log('🛑 VAD écoute arrêtée');
+      console.log('🛑 VAD arrêté');
     }
-  }, [isListening]);
+  }, []);
 
   const toggleListening = useCallback(async () => {
     if (isListening) {
