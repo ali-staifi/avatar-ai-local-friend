@@ -1,7 +1,6 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { VoiceActivityDetector, VADResult, VADOptions } from '@/services/VoiceActivityDetector';
-import { toast } from 'sonner';
 
 interface VADHookOptions extends Partial<VADOptions> {
   enabled?: boolean;
@@ -20,7 +19,6 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
   
   const vadRef = useRef<VoiceActivityDetector | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const toastShownRef = useRef<boolean>(false);
   const isInitializingRef = useRef<boolean>(false);
 
   // Initialiser le VAD
@@ -47,12 +45,6 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
           console.log('✅ VAD hook initialisé avec succès');
         } else {
           console.error('❌ Échec initialisation VAD hook');
-          if (!toastShownRef.current) {
-            toast.error("Erreur VAD", {
-              description: "Impossible d'initialiser la détection vocale"
-            });
-            toastShownRef.current = true;
-          }
         }
         isInitializingRef.current = false;
       }).catch((error) => {
@@ -100,7 +92,7 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
         if (vadRef.current && isListening) {
           setBufferStatus(vadRef.current.getBufferStatus());
         }
-      }, 500); // Fréquence réduite pour éviter la surcharge
+      }, 500);
 
       return () => {
         if (statusIntervalRef.current) {
@@ -122,15 +114,11 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
       setIsListening(true);
       console.log('🎤 VAD écoute démarrée avec succès');
       
-      toast.success("Détection vocale active", {
-        description: "Parlez maintenant, votre voix sera détectée automatiquement"
-      });
+      // REMOVED: Automatic notification that was obstructing the chat
+      // User specifically requested this removal
       return true;
     } catch (error) {
       console.error('❌ Erreur démarrage VAD:', error);
-      toast.error("Erreur microphone", {
-        description: "Impossible d'accéder au microphone. Vérifiez les permissions."
-      });
       return false;
     }
   }, [isInitialized]);

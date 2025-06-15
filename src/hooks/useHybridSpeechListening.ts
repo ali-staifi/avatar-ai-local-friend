@@ -49,9 +49,8 @@ export const useHybridSpeechListening = ({
           setIsListening(false);
           return false;
         }
-        toast.success("Vosk + VAD actif", {
-          description: "Parlez naturellement, les segments sont détectés automatiquement"
-        });
+        // REMOVED: Automatic notification that was obstructing the chat
+        // User specifically requested this removal
       }
       return success;
     }

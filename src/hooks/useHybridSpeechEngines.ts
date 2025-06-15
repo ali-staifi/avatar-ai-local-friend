@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useWebSpeechEngine } from './useWebSpeechEngine';
 import { useVoskEngine } from './useVoskEngine';
 import { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
@@ -19,14 +19,8 @@ export const useHybridSpeechEngines = ({
   onResult,
   onListeningChange
 }: UseHybridSpeechEnginesProps) => {
-  // Utiliser useRef pour éviter les conflits d'état React
-  const engineStatusRef = useRef<'ready' | 'loading' | 'error'>('ready');
-  const [engineStatus, setEngineStatusState] = useState<'ready' | 'loading' | 'error'>('ready');
-
-  const setEngineStatus = (status: 'ready' | 'loading' | 'error') => {
-    engineStatusRef.current = status;
-    setEngineStatusState(status);
-  };
+  // Simplified state management to avoid React queue issues
+  const [engineStatus, setEngineStatus] = useState<'ready' | 'loading' | 'error'>('ready');
 
   // Engine hooks
   const webSpeechEngine = useWebSpeechEngine({
