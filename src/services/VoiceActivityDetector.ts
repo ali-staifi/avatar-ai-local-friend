@@ -31,6 +31,8 @@ export class VoiceActivityDetector {
   private isInVoiceSegment: boolean = false;
   private audioContext: AudioContext | null = null;
   private processor: ScriptProcessorNode | null = null;
+  private mediaStreamSource: MediaStreamSourceNode | null = null;
+  private mediaStream: MediaStream | null = null;
   private callbacks: Set<(result: VADResult) => void> = new Set();
   
   constructor(options: Partial<VADOptions> = {}) {
@@ -81,11 +83,11 @@ export class VoiceActivityDetector {
 
   public async startListening(): Promise<void> {
     try {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: this.options.sampleRate
-      });
+      // Nettoyer les ressources existantes d'abord
+      this.cleanup();
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Obtenir le flux media
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: this.options.sampleRate,
           channelCount: 1,
@@ -95,7 +97,22 @@ export class VoiceActivityDetector {
         }
       });
 
-      const source = this.audioContext.createMediaStreamSource(stream);
+      // Créer un nouveau AudioContext
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+        sampleRate: this.options.sampleRate
+      });
+
+      // Vérifier que l'AudioContext est bien créé
+      if (!this.audioContext) {
+        throw new Error('Impossible de créer AudioContext');
+      }
+
+      // Reprendre le contexte audio si nécessaire
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
 
       this.processor.onaudioprocess = (event) => {
@@ -103,26 +120,19 @@ export class VoiceActivityDetector {
         this.processAudioFrame(audioData);
       };
 
-      source.connect(this.processor);
+      this.mediaStreamSource.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
 
-      console.log('🎤 VAD écoute démarrée');
+      console.log('🎤 VAD écoute démarrée avec succès');
     } catch (error) {
       console.error('❌ Erreur démarrage VAD:', error);
+      this.cleanup();
       throw error;
     }
   }
 
   public stopListening(): void {
-    if (this.processor) {
-      this.processor.disconnect();
-      this.processor = null;
-    }
-    
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    this.cleanup();
 
     // Finaliser le segment en cours si nécessaire
     if (this.isInVoiceSegment) {
@@ -130,6 +140,46 @@ export class VoiceActivityDetector {
     }
 
     console.log('🛑 VAD écoute arrêtée');
+  }
+
+  private cleanup(): void {
+    // Déconnecter et nettoyer le processor
+    if (this.processor) {
+      try {
+        this.processor.disconnect();
+      } catch (e) {
+        // Ignorer les erreurs de déconnexion
+      }
+      this.processor = null;
+    }
+
+    // Déconnecter et nettoyer la source
+    if (this.mediaStreamSource) {
+      try {
+        this.mediaStreamSource.disconnect();
+      } catch (e) {
+        // Ignorer les erreurs de déconnexion
+      }
+      this.mediaStreamSource = null;
+    }
+
+    // Fermer l'AudioContext
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        // Ignorer les erreurs de fermeture
+      }
+    }
+    this.audioContext = null;
+
+    // Arrêter le flux media
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => {
+        track.stop();
+      });
+      this.mediaStream = null;
+    }
   }
 
   private processAudioFrame(audioData: Float32Array): void {
@@ -270,7 +320,7 @@ export class VoiceActivityDetector {
   }
 
   public destroy(): void {
-    this.stopListening();
+    this.cleanup();
     this.callbacks.clear();
     console.log('🗑️ VAD détruit');
   }
