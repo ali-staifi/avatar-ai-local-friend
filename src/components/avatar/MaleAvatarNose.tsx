@@ -12,24 +12,47 @@ export const MaleAvatarNose: React.FC<MaleAvatarNoseProps> = ({ emotion }) => {
 
   return (
     <>
-      {/* Nez masculin plus proéminent */}
-      <mesh position={[0, 0, 0.9]}>
-        <coneGeometry args={[0.1, 0.3, 16]} />
+      {/* Nez plus subtil avec forme arrondie au lieu du triangle */}
+      <mesh position={[0, 0, 0.85]} scale={[0.8, 1, 0.6]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
         <meshPhongMaterial 
           color={getSkinColor()} 
-          shininess={12}
+          shininess={8}
           specular="#ffffff"
+          transparent={true}
+          opacity={0.9}
         />
       </mesh>
       
-      {/* Narines */}
-      <mesh position={[-0.04, -0.05, 0.92]}>
-        <sphereGeometry args={[0.025, 8, 8]} />
-        <meshPhongMaterial color="#c19a6b" shininess={5} />
+      {/* Arête du nez plus douce */}
+      <mesh position={[0, 0.02, 0.88]} scale={[0.3, 0.8, 0.4]}>
+        <sphereGeometry args={[0.06, 12, 12]} />
+        <meshPhongMaterial 
+          color={getSkinColor()} 
+          shininess={5}
+          transparent={true}
+          opacity={0.7}
+        />
       </mesh>
-      <mesh position={[0.04, -0.05, 0.92]}>
-        <sphereGeometry args={[0.025, 8, 8]} />
-        <meshPhongMaterial color="#c19a6b" shininess={5} />
+      
+      {/* Narines plus discrètes */}
+      <mesh position={[-0.025, -0.03, 0.89]}>
+        <sphereGeometry args={[0.015, 8, 8]} />
+        <meshPhongMaterial 
+          color="#c19a6b" 
+          shininess={5}
+          transparent={true}
+          opacity={0.6}
+        />
+      </mesh>
+      <mesh position={[0.025, -0.03, 0.89]}>
+        <sphereGeometry args={[0.015, 8, 8]} />
+        <meshPhongMaterial 
+          color="#c19a6b" 
+          shininess={5}
+          transparent={true}
+          opacity={0.6}
+        />
       </mesh>
     </>
   );

@@ -27,38 +27,39 @@ export const Male3DAvatar: React.FC<Male3DAvatarProps> = ({ isListening, isSpeak
     <div className="w-full h-96 bg-gradient-to-b from-blue-50 to-indigo-100 rounded-lg overflow-hidden relative">
       <Canvas 
         camera={{ position: [0, 0, 5], fov: 50 }}
-        gl={{ antialias: true }}
+        gl={{ 
+          antialias: true,
+          preserveDrawingBuffer: true,
+          powerPreference: "high-performance"
+        }}
         shadows
+        onCreated={({ gl }) => {
+          // Prévenir la perte du contexte WebGL
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            console.warn('⚠️ Contexte WebGL perdu, tentative de restauration...');
+          });
+          
+          gl.domElement.addEventListener('webglcontextrestored', () => {
+            console.log('✅ Contexte WebGL restauré');
+          });
+        }}
       >
-        {/* Éclairage sophistiqué pour plus de réalisme */}
-        <ambientLight intensity={0.4} color="#f4f4f4" />
+        {/* Éclairage amélioré pour éviter les problèmes de rendu */}
+        <ambientLight intensity={0.6} color="#f8f9fa" />
         <directionalLight 
-          position={[5, 8, 5]} 
-          intensity={1.5} 
+          position={[3, 5, 3]} 
+          intensity={1.2} 
           color="#ffffff"
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
         />
         <pointLight 
-          position={[-3, 2, 3]} 
-          intensity={0.8} 
+          position={[-2, 2, 2]} 
+          intensity={0.5} 
           color="#3498db" 
-          distance={10}
-        />
-        <pointLight 
-          position={[3, -2, 2]} 
-          intensity={0.6} 
-          color="#2ecc71" 
           distance={8}
-        />
-        <spotLight
-          position={[0, 5, 0]}
-          angle={Math.PI / 6}
-          penumbra={0.3}
-          intensity={0.5}
-          color="#f39c12"
-          castShadow
         />
         
         <MaleAvatarMesh 
@@ -68,12 +69,14 @@ export const Male3DAvatar: React.FC<Male3DAvatarProps> = ({ isListening, isSpeak
         />
         
         <OrbitControls 
-          enableZoom={false} 
+          enableZoom={true} 
           enablePan={false}
           enableDamping={true}
           dampingFactor={0.05}
           maxPolarAngle={Math.PI / 2}
-          minPolarAngle={Math.PI / 3}
+          minPolarAngle={Math.PI / 4}
+          minDistance={3}
+          maxDistance={7}
         />
       </Canvas>
       

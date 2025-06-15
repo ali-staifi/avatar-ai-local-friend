@@ -12,52 +12,52 @@ export const MaleAvatarHeadBase: React.FC<MaleAvatarHeadBaseProps> = ({ emotion 
 
   return (
     <>
-      {/* Tête avec texture de peau réaliste */}
+      {/* Tête principale plus réaliste */}
       <mesh>
         <sphereGeometry args={[1, 64, 64]} />
         <meshPhongMaterial 
           color={getSkinColor()}
-          shininess={8}
+          shininess={12}
           specular="#ffffff"
-          transparent={true}
-          opacity={0.95}
+          transparent={false}
+          opacity={1}
         />
       </mesh>
       
-      {/* Cheveux courts masculins */}
-      <mesh position={[0, 0.5, -0.1]} scale={[1.05, 0.6, 1.05]}>
+      {/* Cheveux courts masculins repositionnés */}
+      <mesh position={[0, 0.4, -0.1]} scale={[1.02, 0.5, 1.02]}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshPhongMaterial 
           color="#654321" 
-          shininess={40}
+          shininess={25}
           specular="#8b4513"
         />
       </mesh>
       
-      {/* Barbe de trois jours */}
-      <mesh position={[0, -0.4, 0.3]} scale={[0.8, 0.4, 0.8]}>
-        <sphereGeometry args={[1, 32, 32]} />
+      {/* Barbe plus subtile */}
+      <mesh position={[0, -0.3, 0.4]} scale={[0.7, 0.3, 0.6]}>
+        <sphereGeometry args={[0.8, 32, 32]} />
         <meshPhongMaterial 
           color="#4a4a4a" 
           transparent={true}
-          opacity={0.3}
-          shininess={5}
+          opacity={0.4}
+          shininess={8}
         />
       </mesh>
       
-      {/* Oreilles */}
-      <mesh position={[-1.05, 0, 0]} rotation={[0, 0, Math.PI / 6]} scale={[0.3, 0.8, 0.2]}>
+      {/* Oreilles repositionnées */}
+      <mesh position={[-0.95, 0, 0]} rotation={[0, 0, Math.PI / 8]} scale={[0.25, 0.6, 0.15]}>
         <sphereGeometry args={[0.5, 16, 16]} />
         <meshPhongMaterial color={getSkinColor()} shininess={8} />
       </mesh>
-      <mesh position={[1.05, 0, 0]} rotation={[0, 0, -Math.PI / 6]} scale={[0.3, 0.8, 0.2]}>
+      <mesh position={[0.95, 0, 0]} rotation={[0, 0, -Math.PI / 8]} scale={[0.25, 0.6, 0.15]}>
         <sphereGeometry args={[0.5, 16, 16]} />
         <meshPhongMaterial color={getSkinColor()} shininess={8} />
       </mesh>
       
-      {/* Menton plus défini */}
-      <mesh position={[0, -0.7, 0.4]} scale={[0.8, 0.4, 0.6]}>
-        <sphereGeometry args={[0.3, 16, 16]} />
+      {/* Menton plus naturel */}
+      <mesh position={[0, -0.6, 0.3]} scale={[0.6, 0.3, 0.4]}>
+        <sphereGeometry args={[0.25, 16, 16]} />
         <meshPhongMaterial 
           color={getSkinColor()} 
           shininess={8}
