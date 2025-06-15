@@ -21,6 +21,7 @@ export const useWebSpeechEngine = ({
   const webSpeechRef = useRef<SpeechRecognitionInstance | null>(null);
   const lastErrorTime = useRef<number>(0);
   const errorCount = useRef<number>(0);
+  const isListeningRef = useRef<boolean>(false);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -31,7 +32,7 @@ export const useWebSpeechEngine = ({
       recognition.continuous = continuous;
       recognition.interimResults = interimResults;
       
-      // Configuration spécifique pour l'arabe
+      // Configuration optimisée du microphone
       if (language === 'ar') {
         recognition.lang = 'ar-SA';
         console.log('🌐 Web Speech configuré pour l\'arabe (ar-SA)');
@@ -44,11 +45,11 @@ export const useWebSpeechEngine = ({
         const transcript = event.results[0][0].transcript;
         console.log(`✅ Web Speech résultat (${recognition.lang}): "${transcript}"`);
         
-        // Reset error count on successful result
         errorCount.current = 0;
         
         onResult(transcript);
         onListeningChange(false);
+        isListeningRef.current = false;
       };
 
       recognition.onerror = (error: any) => {
@@ -56,43 +57,31 @@ export const useWebSpeechEngine = ({
         console.error('❌ Erreur Web Speech:', error.error);
         
         onListeningChange(false);
+        isListeningRef.current = false;
         
-        // Limiter les notifications d'erreur pour éviter le spam
         const timeSinceLastError = now - lastErrorTime.current;
-        const shouldShowToast = timeSinceLastError > 5000; // Maximum une notification toutes les 5 secondes
+        const shouldShowToast = timeSinceLastError > 3000;
         
         if (error.error === 'no-speech') {
           errorCount.current++;
-          
-          // Ne montrer la notification que si c'est la première fois ou après plusieurs tentatives
-          if (shouldShowToast && errorCount.current <= 2) {
-            console.log('⚠️ Web Speech: Aucune parole détectée');
-            // Supprimer la notification toast pour "no-speech" - trop fréquente
-          }
+          // Supprimer les notifications pour "no-speech"
+          console.log('⚠️ Aucune parole détectée - continuez à parler');
         } else if (error.error === 'not-allowed') {
           if (shouldShowToast) {
             toast.error("Microphone non autorisé", {
-              description: "Autorisez l'accès au microphone dans votre navigateur"
-            });
-          }
-        } else if (error.error === 'language-not-supported') {
-          if (shouldShowToast) {
-            toast.error("Langue non supportée", {
-              description: `${language === 'ar' ? 'L\'arabe' : 'Le français'} n'est pas supporté. Essayez Vosk.`
+              description: "Cliquez sur l'icône microphone dans la barre d'adresse pour autoriser l'accès"
             });
           }
         } else if (error.error === 'network') {
           if (shouldShowToast) {
             toast.error("Erreur réseau", {
-              description: "Connexion internet requise pour Web Speech. Essayez Vosk offline."
+              description: "Connexion internet requise pour Web Speech"
             });
           }
-        } else if (error.error === 'aborted') {
-          console.log('🛑 Web Speech interrompu volontairement');
-        } else {
+        } else if (error.error !== 'aborted') {
           if (shouldShowToast) {
-            toast.error(`Erreur reconnaissance vocale`, {
-              description: "Essayez Vosk + VAD pour une meilleure compatibilité"
+            toast.error("Erreur reconnaissance vocale", {
+              description: "Essayez de parler plus fort ou changez de moteur"
             });
           }
         }
@@ -103,11 +92,13 @@ export const useWebSpeechEngine = ({
       recognition.onend = () => {
         console.log(`🛑 Web Speech terminé (langue: ${recognition.lang})`);
         onListeningChange(false);
+        isListeningRef.current = false;
       };
 
       recognition.onstart = () => {
         console.log(`🎤 Web Speech démarré en ${language === 'ar' ? 'arabe (ar-SA)' : 'français (fr-FR)'}`);
-        errorCount.current = 0; // Reset error count on new start
+        errorCount.current = 0;
+        isListeningRef.current = true;
       };
     } else {
       console.error('❌ Web Speech API non supporté dans ce navigateur');
@@ -115,24 +106,27 @@ export const useWebSpeechEngine = ({
   }, [language, continuous, interimResults, onResult, onListeningChange]);
 
   const startListening = useCallback(() => {
-    if (webSpeechRef.current) {
+    if (webSpeechRef.current && !isListeningRef.current) {
       try {
-        console.log(`🎤 Tentative de démarrage Web Speech en ${language}`);
+        console.log(`🎤 Démarrage Web Speech en ${language}`);
         webSpeechRef.current.start();
         onListeningChange(true);
+        isListeningRef.current = true;
         return true;
       } catch (error) {
         console.error('❌ Erreur démarrage Web Speech:', error);
+        onListeningChange(false);
+        isListeningRef.current = false;
         return false;
       }
     } else {
-      console.error('❌ Web Speech non initialisé');
+      console.warn('⚠️ Web Speech déjà en cours ou non initialisé');
       return false;
     }
   }, [language, onListeningChange]);
 
   const stopListening = useCallback(() => {
-    if (webSpeechRef.current) {
+    if (webSpeechRef.current && isListeningRef.current) {
       try {
         webSpeechRef.current.stop();
         console.log(`🛑 Web Speech arrêté manuellement (langue: ${language})`);
@@ -141,6 +135,7 @@ export const useWebSpeechEngine = ({
       }
     }
     onListeningChange(false);
+    isListeningRef.current = false;
   }, [language, onListeningChange]);
 
   const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;

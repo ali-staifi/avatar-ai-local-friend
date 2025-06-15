@@ -21,19 +21,32 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
   const vadRef = useRef<VoiceActivityDetector | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const toastShownRef = useRef<boolean>(false);
+  const isInitializingRef = useRef<boolean>(false);
 
   // Initialiser le VAD
   useEffect(() => {
-    if (options.enabled !== false) {
-      vadRef.current = new VoiceActivityDetector(options);
+    if (options.enabled !== false && !isInitializingRef.current) {
+      isInitializingRef.current = true;
+      
+      // Configuration VAD optimisée pour meilleure détection
+      const vadOptions = {
+        sampleRate: 16000,
+        frameSize: 30,
+        aggressiveness: 1, // Moins agressif pour éviter les coupures
+        bufferDuration: 3000,
+        silenceThreshold: 2000, // Plus tolérant au silence
+        voiceThreshold: 200, // Plus sensible à la voix
+        ...options
+      };
+
+      vadRef.current = new VoiceActivityDetector(vadOptions);
       
       vadRef.current.initialize().then((success) => {
         if (success) {
           setIsInitialized(true);
-          console.log('✅ VAD hook initialisé');
+          console.log('✅ VAD hook initialisé avec succès');
         } else {
           console.error('❌ Échec initialisation VAD hook');
-          // Réduire les notifications d'erreur répétitives
           if (!toastShownRef.current) {
             toast.error("Erreur VAD", {
               description: "Impossible d'initialiser la détection vocale"
@@ -41,24 +54,28 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
             toastShownRef.current = true;
           }
         }
+        isInitializingRef.current = false;
+      }).catch((error) => {
+        console.error('❌ Erreur VAD:', error);
+        isInitializingRef.current = false;
       });
     }
 
     return () => {
-      if (vadRef.current) {
-        vadRef.current.destroy();
-        vadRef.current = null;
-      }
       if (statusIntervalRef.current) {
         clearInterval(statusIntervalRef.current);
         statusIntervalRef.current = null;
+      }
+      if (vadRef.current) {
+        vadRef.current.destroy();
+        vadRef.current = null;
       }
     };
   }, [options.enabled]);
 
   // Configurer les callbacks pour les segments vocaux
   useEffect(() => {
-    if (vadRef.current && options.onVoiceSegmentDetected) {
+    if (vadRef.current && options.onVoiceSegmentDetected && isInitialized) {
       const handleVoiceDetected = (result: VADResult) => {
         if (result.isVoice && result.audioSegment.length > 0) {
           console.log(`🎤 Segment vocal détecté: ${result.audioSegment.length} échantillons, confiance: ${result.confidence}`);
@@ -76,14 +93,14 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
     }
   }, [options.onVoiceSegmentDetected, isInitialized]);
 
-  // Surveiller le statut du buffer avec une fréquence réduite
+  // Surveiller le statut du buffer
   useEffect(() => {
     if (isListening && vadRef.current) {
       statusIntervalRef.current = setInterval(() => {
-        if (vadRef.current) {
+        if (vadRef.current && isListening) {
           setBufferStatus(vadRef.current.getBufferStatus());
         }
-      }, 200); // Réduit à 200ms pour moins de charge
+      }, 500); // Fréquence réduite pour éviter la surcharge
 
       return () => {
         if (statusIntervalRef.current) {
@@ -96,37 +113,30 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
 
   const startListening = useCallback(async () => {
     if (!vadRef.current || !isInitialized) {
-      console.warn('⚠️ VAD non disponible');
+      console.warn('⚠️ VAD non disponible pour démarrage');
       return false;
     }
 
     try {
       await vadRef.current.startListening();
       setIsListening(true);
-      console.log('🎤 VAD écoute démarrée');
+      console.log('🎤 VAD écoute démarrée avec succès');
       
-      // Notification uniquement au premier démarrage réussi
-      if (!toastShownRef.current) {
-        toast.success("Détection vocale active", {
-          description: "Le système analyse votre voix automatiquement"
-        });
-        toastShownRef.current = true;
-      }
+      toast.success("Détection vocale active", {
+        description: "Parlez maintenant, votre voix sera détectée automatiquement"
+      });
       return true;
     } catch (error) {
       console.error('❌ Erreur démarrage VAD:', error);
-      if (!toastShownRef.current) {
-        toast.error("Erreur microphone", {
-          description: "Impossible d'accéder au microphone pour la détection vocale"
-        });
-        toastShownRef.current = true;
-      }
+      toast.error("Erreur microphone", {
+        description: "Impossible d'accéder au microphone. Vérifiez les permissions."
+      });
       return false;
     }
   }, [isInitialized]);
 
   const stopListening = useCallback(() => {
-    if (vadRef.current) {
+    if (vadRef.current && isListening) {
       vadRef.current.stopListening();
       setIsListening(false);
       setBufferStatus({
@@ -137,7 +147,7 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
       });
       console.log('🛑 VAD écoute arrêtée');
     }
-  }, []);
+  }, [isListening]);
 
   const toggleListening = useCallback(async () => {
     if (isListening) {
