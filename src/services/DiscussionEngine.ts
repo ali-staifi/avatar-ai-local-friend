@@ -115,10 +115,23 @@ export class DiscussionEngine {
     const responseEnhancer = this.conversationProcessor.getResponseEnhancer();
     const intelligentInsights = responseEnhancer.getConversationInsights();
 
+    // Mapper l'émotion vers le type attendu
+    const mapEmotionType = (emotion: string): "neutral" | "happy" | "sad" | "angry" | "excited" | "calm" | "stressed" => {
+      switch (emotion.toLowerCase()) {
+        case 'happy': return 'happy';
+        case 'sad': return 'sad';
+        case 'angry': return 'angry';
+        case 'excited': return 'excited';
+        case 'calm': return 'calm';
+        case 'stressed': return 'stressed';
+        default: return 'neutral';
+      }
+    };
+
     return {
       ...baseInsights,
       voiceEmotionAnalysis: {
-        currentEmotion: intelligentInsights.dominantEmotion,
+        currentEmotion: mapEmotionType(intelligentInsights.dominantEmotion || 'neutral'),
         emotionHistory: intelligentInsights.emotionHistory,
         emotionConfidence: intelligentInsights.emotionHistory.slice(-1)[0]?.confidence || 0
       },
