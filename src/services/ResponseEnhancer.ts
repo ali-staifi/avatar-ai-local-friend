@@ -39,7 +39,7 @@ export class ResponseEnhancer {
     const predictedResponse = this.predictionService.getPredictedResponse(dialogueResponse.intent);
     
     if (predictedResponse) {
-      console.log('⚡ Utilisation d'une réponse pré-générée');
+      console.log('⚡ Utilisation d\'une réponse pré-générée');
       
       // Adapter la réponse prédite au contexte actuel
       const adaptedResponse = this.adaptPredictedResponse(predictedResponse.preGeneratedResponse, conversationContext);

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChatHeader } from '@/components/chat/ChatHeader';
@@ -126,22 +125,24 @@ export const ChatMainContent: React.FC<ChatMainContentProps> = ({
             isThinking={engineState.isProcessing}
           />
 
-          <ChatInput
-            inputText={inputText}
-            setInputText={setInputText}
-            onSendMessage={onSendMessage}
-            onToggleListening={onToggleListening}
-            isListening={isListening}
-            isSpeaking={isSpeaking}
-            canBeInterrupted={canBeInterrupted}
-            currentEngine={currentEngine}
-            engineStatus={engineStatus}
-            currentLanguage={currentLanguage}
-            vadEnabled={vadEnabled}
-            vadSupported={vadSupported}
-            vadListening={vadListening}
-            bufferStatus={bufferStatus}
-          />
+          <div className="chat-input mic-button">
+            <ChatInput
+              inputText={inputText}
+              setInputText={setInputText}
+              onSendMessage={onSendMessage}
+              onToggleListening={onToggleListening}
+              isListening={isListening}
+              isSpeaking={isSpeaking}
+              canBeInterrupted={canBeInterrupted}
+              currentEngine={currentEngine}
+              engineStatus={engineStatus}
+              currentLanguage={currentLanguage}
+              vadEnabled={vadEnabled}
+              vadSupported={vadSupported}
+              vadListening={vadListening}
+              bufferStatus={bufferStatus}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

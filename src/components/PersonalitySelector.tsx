@@ -26,10 +26,10 @@ export const PersonalitySelector: React.FC<PersonalitySelectorProps> = ({
               variant={currentPersonality === trait.id ? "default" : "outline"}
               size="sm"
               onClick={() => onPersonalityChange(trait.id as PersonalityId)}
-              className={`flex flex-col h-auto p-3 ${
+              className={`flex flex-col h-auto p-3 transition-all duration-200 hover:scale-105 ${
                 currentPersonality === trait.id 
-                  ? `bg-gradient-to-r ${trait.color} text-white` 
-                  : 'hover:bg-muted'
+                  ? `bg-gradient-to-r ${trait.color} text-white shadow-lg` 
+                  : 'hover:bg-muted hover:shadow-md'
               }`}
               title={trait.description}
             >
