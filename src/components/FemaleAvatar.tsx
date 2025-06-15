@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Female3DAvatar } from '@/components/Female3DAvatar';
 
 interface FemaleAvatarProps {
   isListening: boolean;
@@ -8,112 +9,13 @@ interface FemaleAvatarProps {
 }
 
 export const FemaleAvatar: React.FC<FemaleAvatarProps> = ({ isListening, isSpeaking, emotion }) => {
-  console.log('👩 FemaleAvatar rendering with:', { isListening, isSpeaking, emotion });
-
-  const getOverlayColor = () => {
-    if (isListening) return 'bg-red-500/20';
-    if (isSpeaking) return 'bg-blue-500/20';
-    switch (emotion) {
-      case 'happy': return 'bg-green-500/20';
-      case 'thinking': return 'bg-purple-500/20';
-      default: return 'bg-gray-500/10';
-    }
-  };
-
-  const getStatusText = () => {
-    if (isListening) return '🎤 Écoute...';
-    if (isSpeaking) return '🗣️ Parle...';
-    switch (emotion) {
-      case 'happy': return '😊 Contente';
-      case 'thinking': return '🤔 Réfléchit...';
-      default: return '💭 Prête';
-    }
-  };
-
-  const getBorderColor = () => {
-    if (isListening) return 'border-red-400';
-    if (isSpeaking) return 'border-blue-400';
-    switch (emotion) {
-      case 'happy': return 'border-green-400';
-      case 'thinking': return 'border-purple-400';
-      default: return 'border-gray-300';
-    }
-  };
+  console.log('👩 FemaleAvatar rendering with 3D avatar:', { isListening, isSpeaking, emotion });
 
   return (
-    <div className="w-full h-96 bg-gradient-to-b from-pink-50 to-purple-100 rounded-lg overflow-hidden relative">
-      {/* Image de la belle jeune femme avec animations */}
-      <div className="w-full h-full relative">
-        <img 
-          src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop&crop=face"
-          alt="Avatar féminin"
-          className={`w-full h-full object-cover transition-all duration-300 ${getBorderColor()} border-4 ${isSpeaking ? 'scale-105' : 'scale-100'}`}
-          onLoad={() => console.log('✅ Image FemaleAvatar chargée avec succès')}
-          onError={(e) => console.error('❌ Erreur chargement image FemaleAvatar:', e)}
-        />
-        
-        {/* Overlay animé selon l'état */}
-        <div className={`absolute inset-0 ${getOverlayColor()} transition-all duration-300`} />
-        
-        {/* Animation de pulsation quand elle parle */}
-        {isSpeaking && (
-          <div className="absolute inset-0 bg-blue-400/30 animate-pulse" />
-        )}
-        
-        {/* Animation de glow quand elle écoute */}
-        {isListening && (
-          <div className="absolute inset-0 bg-red-400/30 animate-ping" />
-        )}
-        
-        {/* Animation de la bouche quand elle parle */}
-        {isSpeaking && (
-          <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2">
-            <div className="w-6 h-4 bg-pink-500/60 rounded-full animate-pulse" />
-            <div className="w-4 h-2 bg-pink-600/80 rounded-full animate-bounce mt-1" />
-          </div>
-        )}
-        
-        {/* Animation des yeux qui clignent */}
-        <div className="absolute top-1/3 left-1/3 w-2 h-2 bg-white rounded-full animate-ping opacity-80" />
-        <div className="absolute top-1/3 right-1/3 w-2 h-2 bg-white rounded-full animate-ping opacity-80" />
-        
-        {/* Cheveux qui bougent quand elle parle */}
-        {isSpeaking && (
-          <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-pink-300/20 to-transparent animate-pulse" />
-        )}
-      </div>
-      
-      {/* Status indicator */}
-      <div className="absolute bottom-4 left-4 right-4">
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
-          <p className="text-sm font-medium text-center text-gray-800">
-            {getStatusText()}
-          </p>
-        </div>
-      </div>
-      
-      {/* Particles d'animation pour les émotions */}
-      {emotion === 'happy' && (
-        <div className="absolute top-4 right-4">
-          <div className="text-2xl animate-bounce">✨</div>
-          <div className="absolute top-2 right-8 text-lg animate-pulse">💖</div>
-        </div>
-      )}
-      
-      {emotion === 'thinking' && (
-        <div className="absolute top-4 right-4">
-          <div className="text-2xl animate-pulse">💭</div>
-          <div className="absolute top-6 right-6 text-sm animate-bounce">🤔</div>
-        </div>
-      )}
-      
-      {/* Animation de respiration */}
-      <div className="absolute inset-0 bg-gradient-to-t from-transparent to-pink-200/10 animate-pulse opacity-30" />
-      
-      {/* Effet de brillance quand elle écoute */}
-      {isListening && (
-        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-yellow-300/20 rounded-full animate-ping" />
-      )}
-    </div>
+    <Female3DAvatar 
+      isListening={isListening}
+      isSpeaking={isSpeaking}
+      emotion={emotion}
+    />
   );
 };
