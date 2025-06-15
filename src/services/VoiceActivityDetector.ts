@@ -1,4 +1,3 @@
-
 export interface VADOptions {
   sampleRate: number;
   frameSize: number; // en ms (10, 20, ou 30)
@@ -34,15 +33,16 @@ export class VoiceActivityDetector {
   private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
   private mediaStream: MediaStream | null = null;
   private callbacks: Set<(result: VADResult) => void> = new Set();
+  private isListening: boolean = false;
   
   constructor(options: Partial<VADOptions> = {}) {
     this.options = {
       sampleRate: 16000,
-      frameSize: 30, // 30ms frames
+      frameSize: 30,
       aggressiveness: 2,
-      bufferDuration: 2000, // 2 secondes de buffer
-      silenceThreshold: 500, // 500ms de silence pour arrêter
-      voiceThreshold: 200, // 200ms de voix pour commencer
+      bufferDuration: 2000,
+      silenceThreshold: 1500, // Augmenté pour éviter les coupures trop rapides
+      voiceThreshold: 300, // Augmenté pour être moins sensible
       ...options
     };
 
@@ -54,14 +54,12 @@ export class VoiceActivityDetector {
       isFull: false
     };
 
-    console.log('🎯 VAD initialisé avec:', this.options);
+    console.log('🎯 VAD initialisé avec options améliorées:', this.options);
   }
 
   public async initialize(): Promise<boolean> {
     try {
-      // Dans un vrai environnement, on utiliserait webrtcvad
-      // Pour cette démo, on simule le VAD avec une logique simplifiée
-      console.log('🎤 VAD simulé initialisé (webrtcvad requis pour production)');
+      console.log('🎤 VAD initialisé (mode amélioré)');
       return true;
     } catch (error) {
       console.error('❌ Erreur initialisation VAD:', error);
@@ -82,10 +80,12 @@ export class VoiceActivityDetector {
   }
 
   public async startListening(): Promise<void> {
-    try {
-      // Nettoyer les ressources existantes d'abord
-      this.cleanup();
+    if (this.isListening) {
+      console.log('🎤 VAD déjà en écoute');
+      return;
+    }
 
+    try {
       // Obtenir le flux media
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -102,12 +102,6 @@ export class VoiceActivityDetector {
         sampleRate: this.options.sampleRate
       });
 
-      // Vérifier que l'AudioContext est bien créé
-      if (!this.audioContext) {
-        throw new Error('Impossible de créer AudioContext');
-      }
-
-      // Reprendre le contexte audio si nécessaire
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
@@ -116,13 +110,16 @@ export class VoiceActivityDetector {
       this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
 
       this.processor.onaudioprocess = (event) => {
-        const audioData = event.inputBuffer.getChannelData(0);
-        this.processAudioFrame(audioData);
+        if (this.isListening) {
+          const audioData = event.inputBuffer.getChannelData(0);
+          this.processAudioFrame(audioData);
+        }
       };
 
       this.mediaStreamSource.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
 
+      this.isListening = true;
       console.log('🎤 VAD écoute démarrée avec succès');
     } catch (error) {
       console.error('❌ Erreur démarrage VAD:', error);
@@ -132,12 +129,21 @@ export class VoiceActivityDetector {
   }
 
   public stopListening(): void {
-    this.cleanup();
+    if (!this.isListening) {
+      return;
+    }
+
+    this.isListening = false;
 
     // Finaliser le segment en cours si nécessaire
     if (this.isInVoiceSegment) {
       this.finalizeVoiceSegment();
     }
+
+    // Différer le nettoyage pour éviter les conflits
+    setTimeout(() => {
+      this.cleanup();
+    }, 100);
 
     console.log('🛑 VAD écoute arrêtée');
   }
@@ -147,6 +153,7 @@ export class VoiceActivityDetector {
     if (this.processor) {
       try {
         this.processor.disconnect();
+        this.processor.onaudioprocess = null;
       } catch (e) {
         // Ignorer les erreurs de déconnexion
       }
@@ -163,15 +170,19 @@ export class VoiceActivityDetector {
       this.mediaStreamSource = null;
     }
 
-    // Fermer l'AudioContext
+    // Fermer l'AudioContext avec un délai
     if (this.audioContext && this.audioContext.state !== 'closed') {
-      try {
-        this.audioContext.close();
-      } catch (e) {
-        // Ignorer les erreurs de fermeture
-      }
+      setTimeout(() => {
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+          try {
+            this.audioContext.close();
+          } catch (e) {
+            // Ignorer les erreurs de fermeture
+          }
+        }
+        this.audioContext = null;
+      }, 200);
     }
-    this.audioContext = null;
 
     // Arrêter le flux media
     if (this.mediaStream) {
@@ -183,54 +194,50 @@ export class VoiceActivityDetector {
   }
 
   private processAudioFrame(audioData: Float32Array): void {
+    if (!this.isListening) return;
+
     // Ajouter au buffer circulaire
     this.addToCircularBuffer(audioData);
 
-    // Simuler la détection VAD (en production, utiliser webrtcvad)
+    // Simuler la détection VAD avec des seuils améliorés
     const isVoice = this.simulateVAD(audioData);
     const timestamp = Date.now();
 
     if (isVoice) {
       if (!this.isInVoiceSegment) {
-        // Début d'un segment vocal
         if (this.voiceStartTime === 0) {
           this.voiceStartTime = timestamp;
         } else if (timestamp - this.voiceStartTime >= this.options.voiceThreshold) {
-          // Seuil de voix atteint, commencer l'enregistrement
           this.isInVoiceSegment = true;
           this.silenceStartTime = 0;
           console.log('🗣️ Début segment vocal détecté');
         }
       } else {
-        // Reset le compteur de silence
         this.silenceStartTime = 0;
       }
     } else {
-      // Silence détecté
       if (this.isInVoiceSegment) {
         if (this.silenceStartTime === 0) {
           this.silenceStartTime = timestamp;
         } else if (timestamp - this.silenceStartTime >= this.options.silenceThreshold) {
-          // Seuil de silence atteint, finaliser le segment
           this.finalizeVoiceSegment();
         }
       } else {
-        // Reset le compteur de voix si pas encore en segment
         this.voiceStartTime = 0;
       }
     }
   }
 
   private simulateVAD(audioData: Float32Array): boolean {
-    // Calcul simple d'énergie pour simuler webrtcvad
+    // Calcul d'énergie amélioré
     let energy = 0;
     for (let i = 0; i < audioData.length; i++) {
       energy += audioData[i] * audioData[i];
     }
     energy = Math.sqrt(energy / audioData.length);
     
-    // Seuil adaptatif basé sur l'agressivité
-    const threshold = 0.01 + (this.options.aggressiveness * 0.005);
+    // Seuil adaptatif plus tolérant
+    const threshold = 0.008 + (this.options.aggressiveness * 0.003);
     return energy > threshold;
   }
 
@@ -320,6 +327,7 @@ export class VoiceActivityDetector {
   }
 
   public destroy(): void {
+    this.isListening = false;
     this.cleanup();
     this.callbacks.clear();
     console.log('🗑️ VAD détruit');

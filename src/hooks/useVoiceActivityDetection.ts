@@ -20,6 +20,7 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
   
   const vadRef = useRef<VoiceActivityDetector | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const toastShownRef = useRef<boolean>(false);
 
   // Initialiser le VAD
   useEffect(() => {
@@ -32,9 +33,13 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
           console.log('✅ VAD hook initialisé');
         } else {
           console.error('❌ Échec initialisation VAD hook');
-          toast.error("Erreur VAD", {
-            description: "Impossible d'initialiser la détection vocale"
-          });
+          // Réduire les notifications d'erreur répétitives
+          if (!toastShownRef.current) {
+            toast.error("Erreur VAD", {
+              description: "Impossible d'initialiser la détection vocale"
+            });
+            toastShownRef.current = true;
+          }
         }
       });
     }
@@ -71,14 +76,14 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
     }
   }, [options.onVoiceSegmentDetected, isInitialized]);
 
-  // Surveiller le statut du buffer
+  // Surveiller le statut du buffer avec une fréquence réduite
   useEffect(() => {
     if (isListening && vadRef.current) {
       statusIntervalRef.current = setInterval(() => {
         if (vadRef.current) {
           setBufferStatus(vadRef.current.getBufferStatus());
         }
-      }, 100); // Update every 100ms
+      }, 200); // Réduit à 200ms pour moins de charge
 
       return () => {
         if (statusIntervalRef.current) {
@@ -91,9 +96,7 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
 
   const startListening = useCallback(async () => {
     if (!vadRef.current || !isInitialized) {
-      toast.error("VAD non disponible", {
-        description: "Le système de détection vocale n'est pas initialisé"
-      });
+      console.warn('⚠️ VAD non disponible');
       return false;
     }
 
@@ -102,15 +105,22 @@ export const useVoiceActivityDetection = (options: VADHookOptions = {}) => {
       setIsListening(true);
       console.log('🎤 VAD écoute démarrée');
       
-      toast.success("Détection vocale active", {
-        description: "Le système analyse votre voix automatiquement"
-      });
+      // Notification uniquement au premier démarrage réussi
+      if (!toastShownRef.current) {
+        toast.success("Détection vocale active", {
+          description: "Le système analyse votre voix automatiquement"
+        });
+        toastShownRef.current = true;
+      }
       return true;
     } catch (error) {
       console.error('❌ Erreur démarrage VAD:', error);
-      toast.error("Erreur microphone", {
-        description: "Impossible d'accéder au microphone pour la détection vocale"
-      });
+      if (!toastShownRef.current) {
+        toast.error("Erreur microphone", {
+          description: "Impossible d'accéder au microphone pour la détection vocale"
+        });
+        toastShownRef.current = true;
+      }
       return false;
     }
   }, [isInitialized]);
