@@ -3,11 +3,14 @@ import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { RealisticAvatarWrapper } from './avatar/RealisticAvatarWrapper';
+import { Gender } from '@/types/gender';
 
 interface AvatarProps {
   isListening: boolean;
   isSpeaking: boolean;
   emotion: 'neutral' | 'happy' | 'thinking';
+  gender?: Gender;
 }
 
 function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
@@ -48,22 +51,53 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
   );
 }
 
-export const Avatar3D: React.FC<AvatarProps> = ({ isListening, isSpeaking, emotion }) => {
-  console.log('🎭 Avatar3D rendering with:', { isListening, isSpeaking, emotion });
+export const Avatar3D: React.FC<AvatarProps> = ({ 
+  isListening, 
+  isSpeaking, 
+  emotion, 
+  gender = 'female' 
+}) => {
+  console.log('🎭 Avatar3D rendering with:', { isListening, isSpeaking, emotion, gender });
   
   return (
     <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 3] }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} />
-        
-        <AvatarMesh 
-          isListening={isListening} 
-          isSpeaking={isSpeaking} 
-          emotion={emotion} 
+      <Canvas camera={{ position: [0, 0, 4] }} shadows>
+        {/* Éclairage amélioré pour le réalisme */}
+        <ambientLight intensity={0.4} color="#ffeaa7" />
+        <directionalLight 
+          position={[10, 10, 10]} 
+          intensity={1.2} 
+          color="#ffffff"
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+        />
+        <pointLight 
+          position={[-5, 5, 5]} 
+          intensity={0.6} 
+          color="#74b9ff" 
+        />
+        <pointLight 
+          position={[5, -5, 5]} 
+          intensity={0.3} 
+          color="#fd79a8" 
         />
         
-        <OrbitControls enableZoom={false} />
+        {/* Avatar réaliste activé par défaut pour le genre féminin */}
+        <RealisticAvatarWrapper
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+          emotion={emotion}
+          gender={gender}
+          useRealistic={true}
+        />
+        
+        <OrbitControls 
+          enableZoom={true} 
+          minDistance={2}
+          maxDistance={8}
+          enablePan={false}
+        />
       </Canvas>
     </div>
   );
