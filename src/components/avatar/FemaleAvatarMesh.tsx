@@ -63,6 +63,7 @@ export const FemaleAvatarMesh: React.FC<FemaleAvatarMeshProps> = ({
           eyeRightRef={eyeRightRef}
           mouthRef={mouthRef}
           hairRef={hairRef}
+          emotion={emotion}
         />
       </group>
     </group>
