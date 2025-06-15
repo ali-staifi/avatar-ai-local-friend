@@ -16,12 +16,7 @@ interface LazyAvatar3DProps {
 }
 
 // Lazy load du composant Avatar3D
-const Avatar3D = lazy(() => 
-  performanceManager.createLazyLoader(
-    () => import('@/components/Avatar3D').then(module => ({ default: module.Avatar3D })),
-    { Avatar3D: SimpleAvatar }
-  ).load().then(result => ({ default: result.Avatar3D }))
-);
+const Avatar3D = lazy(() => import('@/components/Avatar3D').then(module => ({ default: module.Avatar3D })));
 
 export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   isListening,
@@ -38,7 +33,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   useEffect(() => {
     if (!enableLazyLoading || !containerRef || shouldLoad) return;
 
-    const observer = performanceManager.createIntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -48,7 +43,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
           }
         });
       },
-      { threshold: intersectionThreshold, triggerOnce: true }
+      { threshold: intersectionThreshold }
     );
 
     observer.observe(containerRef);

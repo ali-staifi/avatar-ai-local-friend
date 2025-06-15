@@ -1,4 +1,3 @@
-
 import { PERSONALITY_TRAITS, PersonalityTrait, PersonalityId } from '@/types/personality';
 import { Gender } from '@/types/gender';
 import { DiscussionState, ConversationInsights, MemoryStats } from '@/types/discussionEngine';
@@ -23,6 +22,9 @@ export class DiscussionEngine {
   private dialogueManager: DialogueManager;
   private responseEnhancer: ResponseEnhancer;
 
+  // État de l'intelligence conversationnelle
+  private audioStream: MediaStream | null = null;
+
   constructor(personalityId: PersonalityId = 'friendly', gender: Gender = 'male') {
     this.currentPersonality = PERSONALITY_TRAITS.find(p => p.id === personalityId) || PERSONALITY_TRAITS[0];
     this.currentGender = gender;
@@ -36,7 +38,20 @@ export class DiscussionEngine {
     this.dialogueManager = new DialogueManager(this.currentPersonality, gender);
     this.responseEnhancer = new ResponseEnhancer(this.currentPersonality);
 
-    console.log(`🚀 Moteur de discussion avancé initialisé avec genre: ${gender}`);
+    this.initializeVoiceAnalysis();
+
+    console.log(`🚀 Moteur de discussion avancé initialisé avec intelligence conversationnelle et genre: ${gender}`);
+  }
+
+  private async initializeVoiceAnalysis(): Promise<void> {
+    try {
+      // Demander l'accès au microphone pour l'analyse émotionnelle
+      this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('🎤 Analyse vocale émotionnelle activée');
+    } catch (error) {
+      console.warn('⚠️ Impossible d\'activer l\'analyse vocale:', error);
+      // Continuer sans l'analyse vocale si l'utilisateur refuse l'accès
+    }
   }
 
   public setGender(gender: Gender): void {
@@ -71,45 +86,54 @@ export class DiscussionEngine {
   }
 
   public async processUserInput(input: string): Promise<string> {
-    console.log('📝 Processing user input with advanced dialogue system:', input);
+    console.log('📝 Processing user input with intelligent dialogue system:', input);
     
     this.stateManager.setProcessing(true, 'processing_input');
     this.stateManager.setEmotionalState('thinking');
 
     try {
+      // 0. Analyse de l'émotion vocale (si disponible)
+      let voiceEmotion = null;
+      if (this.audioStream) {
+        console.log('🎭 Phase 0: Analyse de l\'émotion vocale');
+        voiceEmotion = await this.responseEnhancer.analyzeVoiceEmotion(this.audioStream);
+      }
+
       // 1. Reconnaissance d'intention
       console.log('🎯 Phase 1: Reconnaissance d\'intention');
       const intent = this.intentRecognition.recognizeIntent(input);
       
       // 2. Gestion du dialogue contextuel
-      console.log('💬 Phase 2: Gestion du dialogue contextuel');
+      console.log('💬 Phase 2: Gestion du dialogue contextuel intelligent');
       const dialogueResponse = this.dialogueManager.processDialogue(intent, input);
       
-      // 3. Amélioration de la réponse
-      console.log('✨ Phase 3: Amélioration de la réponse');
+      // 3. Amélioration de la réponse avec intelligence conversationnelle
+      console.log('✨ Phase 3: Amélioration intelligente de la réponse');
       const enhancedResponse = this.responseEnhancer.enhanceResponse(
         dialogueResponse, 
         this.dialogueManager.getDialogueState()
       );
       
-      // 4. Ajouter à la mémoire avec les données enrichies
+      // 4. Ajouter à la mémoire avec les données enrichies et l'analyse émotionnelle
       this.memoryManager.addMessage('user', input, dialogueResponse.contextualInfo, intent);
       this.memoryManager.addMessage('assistant', enhancedResponse.text, dialogueResponse.contextualInfo, intent, enhancedResponse);
       
-      // 5. Mettre à jour l'état émotionnel
+      // 5. Mettre à jour l'état émotionnel (basé sur l'analyse intelligente)
       this.stateManager.setProcessing(false);
       this.stateManager.setEmotionalState(enhancedResponse.emotion);
 
-      console.log('🎉 Traitement avancé terminé:', {
+      console.log('🎉 Traitement intelligent terminé:', {
         intent: intent.name,
         confidence: intent.confidence,
         emotion: enhancedResponse.emotion,
-        followUps: enhancedResponse.followUpQuestions.length
+        voiceEmotion: voiceEmotion?.emotion,
+        followUps: enhancedResponse.followUpQuestions.length,
+        intelligentHints: enhancedResponse.contextualHints.filter(h => h.includes('💡')).length
       });
 
       return enhancedResponse.text;
     } catch (error) {
-      console.error('❌ Erreur dans le moteur de discussion avancé:', error);
+      console.error('❌ Erreur dans le moteur de discussion intelligent:', error);
       this.stateManager.setProcessing(false);
       this.stateManager.setEmotionalState('neutral');
       throw error;
@@ -158,9 +182,38 @@ export class DiscussionEngine {
   }
 
   public getConversationInsights(): ConversationInsights {
-    return ConversationAnalyzer.generateInsights(
+    const baseInsights = ConversationAnalyzer.generateInsights(
       this.memoryManager.getMemory(),
       this.dialogueManager
     );
+
+    // Enrichir avec les insights d'intelligence conversationnelle
+    const intelligentInsights = this.responseEnhancer.getConversationInsights();
+
+    return {
+      ...baseInsights,
+      voiceEmotionAnalysis: {
+        currentEmotion: intelligentInsights.dominantEmotion,
+        emotionHistory: intelligentInsights.emotionHistory,
+        emotionConfidence: intelligentInsights.emotionHistory.slice(-1)[0]?.confidence || 0
+      },
+      styleAdaptations: intelligentInsights.styleAdaptations,
+      proactiveSuggestions: intelligentInsights.proactiveSuggestions
+    };
+  }
+
+  public getEmotionHistory() {
+    return this.responseEnhancer.getEmotionHistory();
+  }
+
+  public getCurrentEmotion() {
+    return this.responseEnhancer.getCurrentEmotion();
+  }
+
+  public cleanup(): void {
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream = null;
+    }
   }
 }
