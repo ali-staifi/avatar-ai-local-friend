@@ -1,21 +1,15 @@
+
 import React, { useState } from 'react';
-import { Avatar3DWrapper } from '@/components/Avatar3DWrapper';
-import { ChatInterface } from '@/components/ChatInterface';
-import { PersonalitySelector } from '@/components/PersonalitySelector';
-import { GenderSelector } from '@/components/GenderSelector';
-import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
-import { StateIndicator } from '@/components/ui/StateIndicator';
-import { AccessibilityControls } from '@/components/accessibility/AccessibilityControls';
-import { ConversationMetricsDisplay } from '@/components/metrics/ConversationMetricsDisplay';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PersonalityId } from '@/types/personality';
 import { Gender } from '@/types/gender';
 import { SupportedLanguage } from '@/types/speechRecognition';
 import { useTutorial } from '@/hooks/useTutorial';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { HelpCircle, Sparkles } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ControlsSection } from '@/components/layout/ControlsSection';
+import { MainContent } from '@/components/layout/MainContent';
+import { InfoCards } from '@/components/layout/InfoCards';
+import { FloatingComponents } from '@/components/layout/FloatingComponents';
 
 const Index = () => {
   const [isListening, setIsListening] = useState(false);
@@ -96,219 +90,47 @@ const Index = () => {
       </a>
 
       <div className="max-w-7xl mx-auto">
-        {/* Header avec indicateur d'état principal */}
-        <header className="text-center mb-8" role="banner">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Avatar AI Local - Moteur de Discussion Avancé
-            </h1>
-            <StateIndicator 
-              state={getCurrentState() as any} 
-              variant="compact"
-            />
-          </div>
-          
-          <p className="text-lg text-muted-foreground mb-4">
-            Assistant avatar 3D avec IA conversationnelle, personnalités multiples, mémoire contextuelle et gestion d'interruption intelligente
-          </p>
-          
-          <div className="flex justify-center gap-2 flex-wrap mb-4" role="list" aria-label="Fonctionnalités disponibles">
-            <Badge variant="secondary">🎤 Reconnaissance Vocale</Badge>
-            <Badge variant="secondary">🔊 Synthèse Vocale</Badge>
-            <Badge variant="secondary">🧠 Moteur Discussion Avancé</Badge>
-            <Badge variant="secondary">🎭 Personnalités Multiples</Badge>
-            <Badge variant="secondary">💭 Mémoire Conversationnelle</Badge>
-            <Badge variant="secondary">🔄 Gestion Interruption</Badge>
-            <Badge variant="secondary">🎮 Avatar 3D</Badge>
-            <Badge variant="secondary">🔒 100% Privé</Badge>
-            <Badge variant="secondary">♿ Accessibilité</Badge>
-            <Badge variant="secondary">📊 Métriques</Badge>
-          </div>
+        <PageHeader
+          currentState={getCurrentState()}
+          hasCompletedTutorial={hasCompletedTutorial}
+          onStartTutorial={startTutorial}
+        />
 
-          {/* Bouton d'aide et tutoriel */}
-          <nav className="flex justify-center gap-2" aria-label="Actions principales">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startTutorial}
-              className="flex items-center gap-2"
-              aria-describedby="tutorial-help"
-            >
-              <HelpCircle className="h-4 w-4" />
-              {hasCompletedTutorial ? 'Revoir le tutoriel' : 'Guide d\'utilisation'}
-            </Button>
-            <span id="tutorial-help" className="sr-only">
-              Ouvre un guide interactif pour apprendre à utiliser l'application
-            </span>
-            {!hasCompletedTutorial && (
-              <Badge variant="default" className="animate-pulse">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Nouveau !
-              </Badge>
-            )}
-          </nav>
-        </header>
+        <ControlsSection
+          currentPersonality={currentPersonality}
+          onPersonalityChange={setCurrentPersonality}
+          currentGender={currentGender}
+          onGenderChange={setCurrentGender}
+          currentLanguage={currentLanguage}
+        />
 
-        {/* Controls Section avec classes pour le tutoriel */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" aria-label="Sélecteurs de configuration">
-          {/* Personality Selector */}
-          <div className="personality-selector">
-            <PersonalitySelector
-              currentPersonality={currentPersonality}
-              onPersonalityChange={setCurrentPersonality}
-            />
-          </div>
-          
-          {/* Gender Selector */}
-          <div className="gender-selector">
-            <GenderSelector
-              currentGender={currentGender}
-              onGenderChange={setCurrentGender}
-              currentLanguage={currentLanguage}
-            />
-          </div>
-        </section>
+        <MainContent
+          isListening={isListening}
+          setIsListening={setIsListening}
+          isSpeaking={isSpeaking}
+          setIsSpeaking={setIsSpeaking}
+          emotion={emotion}
+          setEmotion={setEmotion}
+          currentPersonality={currentPersonality}
+          setCurrentPersonality={setCurrentPersonality}
+          currentGender={currentGender}
+          currentLanguage={currentLanguage}
+          setCurrentLanguage={setCurrentLanguage}
+          getCurrentState={getCurrentState}
+          getGenderDisplayText={getGenderDisplayText}
+        />
 
-        {/* Main Content */}
-        <main id="main-content" className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]" role="main">
-          {/* Avatar Section */}
-          <section aria-label="Avatar 3D et informations d'état">
-            <Card className="flex flex-col">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between">
-                  <span>Avatar 3D Interactif</span>
-                  <div className="flex gap-2">
-                    <StateIndicator state={getCurrentState() as any} />
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <div role="img" aria-label={`Avatar ${getGenderDisplayText(currentGender)} en état ${getCurrentState()}`}>
-                  <Avatar3DWrapper 
-                    isListening={isListening}
-                    isSpeaking={isSpeaking}
-                    emotion={emotion === 'listening' ? 'thinking' : emotion}
-                    gender={currentGender}
-                  />
-                </div>
-                
-                {/* Status Info amélioré avec indicateurs visuels */}
-                <div className="mt-4 p-4 bg-muted rounded-lg" role="region" aria-label="État du système">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    État du système :
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span>Reconnaissance vocale :</span>
-                      <StateIndicator 
-                        state={isListening ? 'listening' : 'ready'}
-                        variant="compact"
-                        showText={false}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Synthèse vocale :</span>
-                      <StateIndicator 
-                        state={isSpeaking ? 'speaking' : 'ready'}
-                        variant="compact"
-                        showText={false}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>État émotionnel :</span>
-                      <Badge variant="outline" className="capitalize">
-                        {emotion === 'listening' ? 'À l\'écoute' : emotion}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Personnalité :</span>
-                      <Badge variant="secondary" className="capitalize">
-                        {currentPersonality}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Genre :</span>
-                      <Badge variant="outline">
-                        {getGenderDisplayText(currentGender)}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Chat Section avec classe pour tutoriel */}
-          <section id="chat-interface" className="chat-interface" aria-label="Interface de conversation">
-            <ChatInterface
-              onListeningChange={setIsListening}
-              onSpeakingChange={setIsSpeaking}
-              onEmotionChange={setEmotion}
-              onPersonalityChange={setCurrentPersonality}
-              currentPersonality={currentPersonality}
-              currentGender={currentGender}
-              onLanguageChange={setCurrentLanguage}
-            />
-          </section>
-        </main>
-
-        {/* Info Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" aria-label="Informations sur les fonctionnalités">
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🎭 Personnalités Multiples</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• 6 personnalités distinctes</li>
-                <li>• Styles de communication uniques</li>
-                <li>• Réactions émotionnelles adaptées</li>
-                <li>• Intérêts spécialisés par personnalité</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🧠 Moteur de Discussion</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Mémoire conversationnelle contextuelle</li>
-                <li>• Gestion intelligente des interruptions</li>
-                <li>• Apprentissage des préférences utilisateur</li>
-                <li>• Réponses adaptées au contexte</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">🔒 Confidentialité Totale</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• Traitement 100% local</li>
-                <li>• Aucune donnée envoyée en ligne</li>
-                <li>• Mémoire stockée localement</li>
-                <li>• Respect absolu de la vie privée</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </section>
+        <InfoCards />
       </div>
 
-      {/* Composants d'accessibilité et métriques */}
-      <AccessibilityControls
-        isVisible={showAccessibilityControls}
-        onToggleVisibility={() => setShowAccessibilityControls(!showAccessibilityControls)}
-      />
-
-      <ConversationMetricsDisplay
-        isVisible={showMetrics}
-        onToggle={() => setShowMetrics(!showMetrics)}
-      />
-
-      {/* Tutoriel Overlay */}
-      <TutorialOverlay
-        isVisible={showTutorial}
-        onClose={closeTutorial}
-        onComplete={completeTutorial}
+      <FloatingComponents
+        showAccessibilityControls={showAccessibilityControls}
+        setShowAccessibilityControls={setShowAccessibilityControls}
+        showMetrics={showMetrics}
+        setShowMetrics={setShowMetrics}
+        showTutorial={showTutorial}
+        closeTutorial={closeTutorial}
+        completeTutorial={completeTutorial}
       />
     </div>
   );
