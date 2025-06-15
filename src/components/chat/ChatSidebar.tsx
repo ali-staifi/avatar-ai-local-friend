@@ -48,6 +48,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <LanguageSelector
             currentLanguage={currentLanguage}
             onLanguageChange={onLanguageChange}
+            isListening={isListening}
           />
         </CardContent>
       </Card>

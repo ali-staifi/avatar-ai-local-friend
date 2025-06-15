@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChatHeader } from '@/components/chat/ChatHeader';
@@ -51,6 +52,7 @@ interface ChatMainContentProps {
   onResetConversation: () => void;
   onExportConversation: () => void;
   canBeInterrupted: boolean;
+  isIntegrationProcessing: boolean;
 }
 
 export const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -81,7 +83,8 @@ export const ChatMainContent: React.FC<ChatMainContentProps> = ({
   currentPersonality,
   onResetConversation,
   onExportConversation,
-  canBeInterrupted
+  canBeInterrupted,
+  isIntegrationProcessing
 }) => {
   return (
     <div className="flex-1 space-y-4">
@@ -122,7 +125,7 @@ export const ChatMainContent: React.FC<ChatMainContentProps> = ({
         <CardContent className="flex-1 flex flex-col gap-4">
           <MessageList 
             messages={messages}
-            isThinking={engineState.isProcessing}
+            isThinking={engineState.isProcessing || isIntegrationProcessing}
           />
 
           <div className="chat-input mic-button">
