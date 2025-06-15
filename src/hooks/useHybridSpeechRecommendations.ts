@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
 
@@ -21,58 +21,22 @@ export const useHybridSpeechRecommendations = ({
   isListening
 }: UseHybridSpeechRecommendationsProps) => {
   
-  // Forcer Vosk + VAD pour l'arabe si Web Speech échoue
-  useEffect(() => {
-    if (currentLanguage === 'ar' && currentEngine === 'web-speech') {
-      console.log('🌐 Arabe détecté - recommandation Vosk + VAD pour une meilleure précision');
-      
-      toast.warning("Recommandation pour l'arabe", {
-        description: "Vosk + VAD est recommandé pour une meilleure reconnaissance en arabe",
-        action: {
-          label: "Activer Vosk + VAD",
-          onClick: () => {
-            switchEngine('vosk');
-            if (!vadEnabled) {
-              toggleVAD();
-            }
-          }
-        },
-        duration: 8000
-      });
-    }
-  }, [currentLanguage, currentEngine, vadEnabled, switchEngine, toggleVAD]);
+  // Suppression des recommandations automatiques qui gênent l'utilisation
+  // Les utilisateurs peuvent changer manuellement via l'interface
 
   const handleEngineSwitch = useCallback((engine: SpeechEngine) => {
-    // Auto-activer VAD pour l'arabe avec Vosk
+    // Auto-activer VAD pour l'arabe avec Vosk sans notification
     if (engine === 'vosk' && currentLanguage === 'ar' && !vadEnabled) {
       toggleVAD();
-      toast.info("VAD activé automatiquement", {
-        description: "Recommandé pour la reconnaissance vocale en arabe"
-      });
     }
     
     switchEngine(engine);
   }, [switchEngine, currentLanguage, vadEnabled, toggleVAD]);
 
   const handleLanguageSwitch = useCallback((language: SupportedLanguage) => {
-    // Auto-suggestions pour l'arabe
-    if (language === 'ar') {
-      setTimeout(() => {
-        if (currentEngine === 'web-speech') {
-          toast.info("Suggestion pour l'arabe", {
-            description: "Vosk + VAD offre une meilleure reconnaissance en arabe",
-            action: {
-              label: "Passer à Vosk + VAD",
-              onClick: () => {
-                handleEngineSwitch('vosk');
-              }
-            },
-            duration: 10000
-          });
-        }
-      }, 1000);
-    }
-  }, [currentEngine, handleEngineSwitch]);
+    // Suppression des suggestions automatiques qui interrompent l'expérience
+    console.log(`🌐 Langue changée vers ${language}`);
+  }, []);
 
   const handleVADToggle = useCallback(() => {
     if (isListening) {
