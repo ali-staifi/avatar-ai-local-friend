@@ -23,11 +23,20 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   isSpeaking,
   emotion,
   gender = 'male',
-  enableLazyLoading = true,
+  enableLazyLoading = false, // Désactivé par défaut pour diagnostiquer
   intersectionThreshold = 0.1
 }) => {
   const [shouldLoad, setShouldLoad] = useState(!enableLazyLoading);
   const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
+
+  console.log('🎭 LazyAvatar3D render:', { 
+    gender, 
+    isListening, 
+    isSpeaking, 
+    emotion, 
+    enableLazyLoading, 
+    shouldLoad 
+  });
 
   // Intersection Observer pour le lazy loading
   useEffect(() => {
@@ -59,12 +68,16 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
 
   // Avatar féminin - pas de 3D, utilisation directe
   if (gender === 'female') {
+    console.log('👩 Rendu FemaleAvatar avec props:', avatarProps);
     return (
       <div ref={setContainerRef} className="w-full h-full">
         <AdvancedErrorBoundary 
           componentName="FemaleAvatar"
           severity="medium"
-          fallback={() => <SimpleAvatar {...avatarProps} />}
+          fallback={() => {
+            console.log('⚠️ FemaleAvatar fallback utilisé');
+            return <SimpleAvatar {...avatarProps} />;
+          }}
         >
           <FemaleAvatar {...avatarProps} />
         </AdvancedErrorBoundary>
@@ -73,22 +86,33 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   }
 
   // Avatar masculin avec lazy loading du 3D
+  console.log('👨 Rendu Avatar3D avec props:', avatarProps, 'shouldLoad:', shouldLoad);
   return (
     <div ref={setContainerRef} className="w-full h-full">
       <AdvancedErrorBoundary 
         componentName="Avatar3D"
         severity="high"
-        fallback={() => <SimpleAvatar {...avatarProps} />}
+        fallback={() => {
+          console.log('⚠️ Avatar3D fallback utilisé');
+          return <SimpleAvatar {...avatarProps} />;
+        }}
       >
         {shouldLoad ? (
-          <Suspense fallback={<SimpleAvatar {...avatarProps} />}>
+          <Suspense fallback={
+            <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="text-center text-white">
+                <div className="animate-pulse text-4xl mb-2">🤖</div>
+                <div className="text-sm">Chargement de l'avatar 3D...</div>
+              </div>
+            </div>
+          }>
             <Avatar3D {...avatarProps} />
           </Suspense>
         ) : (
           <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden flex items-center justify-center">
             <div className="text-center text-white">
               <div className="animate-pulse text-4xl mb-2">🤖</div>
-              <div className="text-sm">Chargement de l'avatar 3D...</div>
+              <div className="text-sm">Avatar prêt à charger...</div>
             </div>
           </div>
         )}

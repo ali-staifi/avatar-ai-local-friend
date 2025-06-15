@@ -49,7 +49,7 @@ function AvatarMesh({ isListening, isSpeaking, emotion }: AvatarProps) {
 }
 
 export const Avatar3D: React.FC<AvatarProps> = ({ isListening, isSpeaking, emotion }) => {
-  console.log('Avatar3D rendering with:', { isListening, isSpeaking, emotion });
+  console.log('🎭 Avatar3D rendering with:', { isListening, isSpeaking, emotion });
   
   return (
     <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden">

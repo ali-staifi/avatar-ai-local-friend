@@ -8,6 +8,8 @@ interface FemaleAvatarProps {
 }
 
 export const FemaleAvatar: React.FC<FemaleAvatarProps> = ({ isListening, isSpeaking, emotion }) => {
+  console.log('👩 FemaleAvatar rendering with:', { isListening, isSpeaking, emotion });
+
   const getOverlayColor = () => {
     if (isListening) return 'bg-red-500/20';
     if (isSpeaking) return 'bg-blue-500/20';
@@ -46,6 +48,8 @@ export const FemaleAvatar: React.FC<FemaleAvatarProps> = ({ isListening, isSpeak
           src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=400&fit=crop&crop=face"
           alt="Avatar féminin"
           className={`w-full h-full object-cover transition-all duration-300 ${getBorderColor()} border-4`}
+          onLoad={() => console.log('✅ Image FemaleAvatar chargée avec succès')}
+          onError={(e) => console.error('❌ Erreur chargement image FemaleAvatar:', e)}
         />
         
         {/* Overlay animé selon l'état */}

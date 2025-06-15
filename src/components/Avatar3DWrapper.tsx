@@ -10,14 +10,18 @@ interface Avatar3DWrapperProps {
   gender?: Gender;
 }
 
-export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps & Record<string, any>> = (allProps) => {
-  // Filter out development-specific props that interfere with Three.js
-  const { isListening, isSpeaking, emotion, gender = 'male', ...devProps } = allProps;
+export const Avatar3DWrapper: React.FC<Avatar3DWrapperProps> = (props) => {
+  const { isListening, isSpeaking, emotion, gender = 'male' } = props;
   
-  // Only pass the actual Avatar props, filtering out any data-* attributes
-  const cleanProps = { isListening, isSpeaking, emotion, gender };
+  console.log('🎬 Avatar3DWrapper rendering avec props:', { isListening, isSpeaking, emotion, gender });
   
-  console.log('Avatar3DWrapper rendering with clean props:', cleanProps);
-  
-  return <LazyAvatar3D {...cleanProps} enableLazyLoading={true} />;
+  return (
+    <LazyAvatar3D 
+      isListening={isListening}
+      isSpeaking={isSpeaking}
+      emotion={emotion}
+      gender={gender}
+      enableLazyLoading={false}
+    />
+  );
 };
