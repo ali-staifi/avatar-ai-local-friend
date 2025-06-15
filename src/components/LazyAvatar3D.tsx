@@ -2,6 +2,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { SimpleAvatar } from '@/components/SimpleAvatar';
 import { FemaleAvatar } from '@/components/FemaleAvatar';
+import { MaleAvatar } from '@/components/MaleAvatar';
 import { AdvancedErrorBoundary } from '@/components/error/AdvancedErrorBoundary';
 import { performanceManager } from '@/services/PerformanceManager';
 import { Gender } from '@/types/gender';
@@ -15,7 +16,7 @@ interface LazyAvatar3DProps {
   intersectionThreshold?: number;
 }
 
-// Lazy load du composant Avatar3D
+// Lazy load du composant Avatar3D (gardé pour compatibilité future)
 const Avatar3D = lazy(() => import('@/components/Avatar3D').then(module => ({ default: module.Avatar3D })));
 
 export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
@@ -39,7 +40,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
   });
   console.log('🚺🚹 LazyAvatar3D - Genre analysé:', gender, 'Type:', typeof gender);
 
-  // Intersection Observer pour le lazy loading
+  // Intersection Observer pour le lazy loading (gardé pour le futur)
   useEffect(() => {
     if (!enableLazyLoading || !containerRef || shouldLoad) return;
 
@@ -47,7 +48,7 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            console.log('🎯 Avatar3D entré dans le viewport - démarrage du lazy loading');
+            console.log('🎯 Avatar entré dans le viewport - démarrage du lazy loading');
             setShouldLoad(true);
             observer.unobserve(entry.target);
           }
@@ -67,9 +68,9 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
 
   const avatarProps = { isListening, isSpeaking, emotion };
 
-  // Avatar féminin - logique simplifiée et debug renforcé
+  // Avatar féminin animé
   if (gender === 'female') {
-    console.log('✅ CONDITION FEMALE MATCHED - Rendu FemaleAvatar');
+    console.log('✅ CONDITION FEMALE MATCHED - Rendu FemaleAvatar animé');
     console.log('👩 Rendu FemaleAvatar avec props:', avatarProps);
     return (
       <div ref={setContainerRef} className="w-full h-full">
@@ -87,37 +88,19 @@ export const LazyAvatar3D: React.FC<LazyAvatar3DProps> = ({
     );
   }
 
-  // Avatar masculin avec lazy loading du 3D
-  console.log('👨 CONDITION MALE - Rendu Avatar3D avec props:', avatarProps, 'shouldLoad:', shouldLoad);
+  // Avatar masculin animé (plus de cercle 3D !)
+  console.log('👨 CONDITION MALE - Rendu MaleAvatar animé avec props:', avatarProps);
   return (
     <div ref={setContainerRef} className="w-full h-full">
       <AdvancedErrorBoundary 
-        componentName="Avatar3D"
-        severity="high"
+        componentName="MaleAvatar"
+        severity="medium"
         fallback={() => {
-          console.log('⚠️ Avatar3D fallback utilisé');
+          console.log('⚠️ MaleAvatar fallback utilisé');
           return <SimpleAvatar {...avatarProps} />;
         }}
       >
-        {shouldLoad ? (
-          <Suspense fallback={
-            <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="animate-pulse text-4xl mb-2">🤖</div>
-                <div className="text-sm">Chargement de l'avatar 3D...</div>
-              </div>
-            </div>
-          }>
-            <Avatar3D {...avatarProps} />
-          </Suspense>
-        ) : (
-          <div className="w-full h-96 bg-gradient-to-b from-slate-900 to-slate-700 rounded-lg overflow-hidden flex items-center justify-center">
-            <div className="text-center text-white">
-              <div className="animate-pulse text-4xl mb-2">🤖</div>
-              <div className="text-sm">Avatar prêt à charger...</div>
-            </div>
-          </div>
-        )}
+        <MaleAvatar {...avatarProps} />
       </AdvancedErrorBoundary>
     </div>
   );
