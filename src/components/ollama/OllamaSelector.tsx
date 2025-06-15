@@ -7,6 +7,7 @@ import { OllamaStatus } from './OllamaStatus';
 import { OllamaModelSelector } from './OllamaModelSelector';
 import { OllamaAdvancedSettings } from './OllamaAdvancedSettings';
 import { OllamaModelInfo } from './OllamaModelInfo';
+import { OllamaCompressionControls } from './OllamaCompressionControls';
 
 interface OllamaSelectorProps {
   isAvailable: boolean;
@@ -16,6 +17,8 @@ interface OllamaSelectorProps {
   onConfigUpdate: (updates: Partial<OllamaConfig>) => void;
   onRefreshModels: () => void;
   onCheckAvailability: () => void;
+  getCacheStats: () => any;
+  onClearCache: () => void;
 }
 
 export const OllamaSelector: React.FC<OllamaSelectorProps> = ({
@@ -25,45 +28,61 @@ export const OllamaSelector: React.FC<OllamaSelectorProps> = ({
   config,
   onConfigUpdate,
   onRefreshModels,
-  onCheckAvailability
+  onCheckAvailability,
+  getCacheStats,
+  onClearCache
 }) => {
   return (
-    <Card className="w-full">
-      <OllamaHeader isAvailable={isAvailable} />
-      
-      <CardContent className="space-y-4">
-        <OllamaStatus
-          isAvailable={isAvailable}
-          isLoading={isLoading}
-          config={config}
-          onConfigUpdate={onConfigUpdate}
-          onRefreshModels={onRefreshModels}
-          onCheckAvailability={onCheckAvailability}
+    <div className="space-y-4">
+      <Card className="w-full">
+        <OllamaHeader isAvailable={isAvailable} />
+        
+        <CardContent className="space-y-4">
+          <OllamaStatus
+            isAvailable={isAvailable}
+            isLoading={isLoading}
+            config={config}
+            onConfigUpdate={onConfigUpdate}
+            onRefreshModels={onRefreshModels}
+            onCheckAvailability={onCheckAvailability}
+          />
+
+          {/* Sélection du modèle */}
+          {isAvailable && (
+            <div className="space-y-3">
+              <OllamaModelSelector
+                models={models}
+                config={config}
+                onConfigUpdate={onConfigUpdate}
+              />
+
+              {/* Paramètres avancés */}
+              <OllamaAdvancedSettings
+                config={config}
+                onConfigUpdate={onConfigUpdate}
+              />
+
+              {/* Info modèle sélectionné */}
+              <OllamaModelInfo
+                selectedModelName={config.selectedModel}
+                models={models}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Compression Controls */}
+      {isAvailable && (
+        <OllamaCompressionControls
+          compressionConfig={config.compression}
+          onConfigUpdate={(compressionUpdates) => 
+            onConfigUpdate({ compression: { ...config.compression, ...compressionUpdates } })
+          }
+          getCacheStats={getCacheStats}
+          onClearCache={onClearCache}
         />
-
-        {/* Sélection du modèle */}
-        {isAvailable && (
-          <div className="space-y-3">
-            <OllamaModelSelector
-              models={models}
-              config={config}
-              onConfigUpdate={onConfigUpdate}
-            />
-
-            {/* Paramètres avancés */}
-            <OllamaAdvancedSettings
-              config={config}
-              onConfigUpdate={onConfigUpdate}
-            />
-
-            {/* Info modèle sélectionné */}
-            <OllamaModelInfo
-              selectedModelName={config.selectedModel}
-              models={models}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };

@@ -22,7 +22,9 @@ export const useDiscussionEngine = (
     updateConfig: updateOllamaConfig,
     generateResponse: generateOllamaResponse,
     refreshModels: refreshOllamaModels,
-    checkAvailability: checkOllamaAvailability
+    checkAvailability: checkOllamaAvailability,
+    getCacheStats,
+    clearCache
   } = useOllama();
   
   const [engineState, setEngineState] = useState({
@@ -166,7 +168,7 @@ export const useDiscussionEngine = (
     getConversationExport,
     changePersonality,
     getCurrentPersonality,
-    // Nouvelles propriétés Ollama
+    // Nouvelles propriétés Ollama avec compression
     ollama: {
       isAvailable: ollamaAvailable,
       models: ollamaModels,
@@ -174,7 +176,9 @@ export const useDiscussionEngine = (
       config: ollamaConfig,
       updateConfig: updateOllamaConfig,
       refreshModels: refreshOllamaModels,
-      checkAvailability: checkOllamaAvailability
+      checkAvailability: checkOllamaAvailability,
+      getCacheStats,
+      clearCache
     }
   };
 };

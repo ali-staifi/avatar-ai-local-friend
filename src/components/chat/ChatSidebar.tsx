@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,9 @@ interface ChatSidebarProps {
   onRefreshOllamaModels: () => void;
   onCheckOllamaAvailability: () => void;
   integrationManager?: IntegrationManager;
+  // New compression-related props
+  onGetOllamaCacheStats?: () => any;
+  onClearOllamaCache?: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -34,7 +36,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onOllamaConfigUpdate,
   onRefreshOllamaModels,
   onCheckOllamaAvailability,
-  integrationManager
+  integrationManager,
+  onGetOllamaCacheStats,
+  onClearOllamaCache
 }) => {
   const [showIntegrations, setShowIntegrations] = useState(false);
 
@@ -53,22 +57,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Modèle local (Ollama)</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <OllamaSelector
-            isAvailable={ollamaAvailable}
-            models={ollamaModels}
-            isLoading={ollamaLoading}
-            config={ollamaConfig}
-            onConfigUpdate={onOllamaConfigUpdate}
-            onRefreshModels={onRefreshOllamaModels}
-            onCheckAvailability={onCheckOllamaAvailability}
-          />
-        </CardContent>
-      </Card>
+      <div>
+        <h3 className="text-sm font-medium mb-2">Modèle local (Ollama)</h3>
+        <OllamaSelector
+          isAvailable={ollamaAvailable}
+          models={ollamaModels}
+          isLoading={ollamaLoading}
+          config={ollamaConfig}
+          onConfigUpdate={onOllamaConfigUpdate}
+          onRefreshModels={onRefreshOllamaModels}
+          onCheckAvailability={onCheckOllamaAvailability}
+          getCacheStats={onGetOllamaCacheStats || (() => ({}))}
+          onClearCache={onClearOllamaCache || (() => {})}
+        />
+      </div>
 
       {/* Nouveau panneau d'intégrations */}
       <Card>

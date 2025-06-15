@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { OllamaService, OllamaModel } from '@/services/OllamaService';
+import { OllamaService, OllamaModel, OllamaCompressionConfig } from '@/services/OllamaService';
 
 // Export the OllamaModel type so it can be used by other components
-export type { OllamaModel } from '@/services/OllamaService';
+export type { OllamaModel, OllamaCompressionConfig } from '@/services/OllamaService';
 
 export interface OllamaConfig {
   enabled: boolean;
@@ -11,6 +11,7 @@ export interface OllamaConfig {
   temperature: number;
   maxTokens: number;
   systemPrompt: string;
+  compression: OllamaCompressionConfig;
 }
 
 export const useOllama = () => {
@@ -22,7 +23,13 @@ export const useOllama = () => {
     selectedModel: '',
     temperature: 0.7,
     maxTokens: 500,
-    systemPrompt: 'Tu es un assistant IA utile et amical.'
+    systemPrompt: 'Tu es un assistant IA utile et amical.',
+    compression: {
+      enabled: true,
+      cacheResponses: true,
+      compressionLevel: 6,
+      cacheThreshold: 100
+    }
   });
 
   const ollamaService = useRef(new OllamaService());
@@ -79,7 +86,16 @@ export const useOllama = () => {
   }, [isAvailable, config]);
 
   const updateConfig = useCallback((updates: Partial<OllamaConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }));
+    setConfig(prev => {
+      const newConfig = { ...prev, ...updates };
+      
+      // Update compression config if it changed
+      if (updates.compression) {
+        ollamaService.current.setCompressionConfig(updates.compression);
+      }
+      
+      return newConfig;
+    });
   }, []);
 
   const refreshModels = useCallback(async () => {
@@ -96,6 +112,19 @@ export const useOllama = () => {
     }
   }, [isAvailable]);
 
+  const getCacheStats = useCallback(() => {
+    return ollamaService.current.getCacheStats();
+  }, []);
+
+  const clearCache = useCallback(() => {
+    ollamaService.current.clearCache();
+  }, []);
+
+  // Initialize compression config
+  useEffect(() => {
+    ollamaService.current.setCompressionConfig(config.compression);
+  }, [config.compression]);
+
   useEffect(() => {
     checkAvailability();
   }, [checkAvailability]);
@@ -108,6 +137,8 @@ export const useOllama = () => {
     updateConfig,
     generateResponse,
     refreshModels,
-    checkAvailability
+    checkAvailability,
+    getCacheStats,
+    clearCache
   };
 };
