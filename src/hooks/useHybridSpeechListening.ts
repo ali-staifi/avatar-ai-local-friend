@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { SpeechEngine } from '@/types/speechRecognition';
 
-interface UseSpeechListeningManagerProps {
+interface UseHybridSpeechListeningProps {
   currentEngine: SpeechEngine;
   engineStatus: 'ready' | 'loading' | 'error';
   webSpeechEngine: {
@@ -21,7 +21,7 @@ interface UseSpeechListeningManagerProps {
   stopVAD: () => void;
 }
 
-export const useSpeechListeningManager = ({
+export const useHybridSpeechListening = ({
   currentEngine,
   engineStatus,
   webSpeechEngine,
@@ -31,7 +31,7 @@ export const useSpeechListeningManager = ({
   vadListening,
   startVAD,
   stopVAD
-}: UseSpeechListeningManagerProps) => {
+}: UseHybridSpeechListeningProps) => {
   const [isListening, setIsListening] = useState(false);
 
   const startListening = useCallback(async () => {
