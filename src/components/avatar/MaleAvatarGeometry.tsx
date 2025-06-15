@@ -16,7 +16,7 @@ interface MaleGeometryProps {
   emotion: 'neutral' | 'happy' | 'thinking';
 }
 
-export const MaleAvatarBody: React.FC = () => {
+export const MaleAvatarBodyWrapper: React.FC = () => {
   return (
     <>
       <MaleAvatarBody />
