@@ -1,19 +1,20 @@
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Message } from '@/types/chat';
 import { PersonalityId } from '@/types/personality';
-import { SupportedLanguage } from '@/types/speechRecognition';
-import { toast } from 'sonner';
+import { conversationMetrics } from '@/services/ConversationMetrics';
+import { accessibilityManager } from '@/services/AccessibilityManager';
 
 interface UseChatMessageHandlerProps {
   addMessage: (message: Message) => void;
   setInputText: (text: string) => void;
-  processMessage: (text: string, language?: SupportedLanguage) => Promise<string>;
+  processMessage: (text: string, language?: 'fr' | 'ar', files?: FileList | File[]) => Promise<string>;
   speechEnabled: boolean;
-  speak: (text: string, onStart?: () => void, onEnd?: () => void, language?: SupportedLanguage) => void;
+  speak: (text: string) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onEmotionChange: (emotion: 'neutral' | 'happy' | 'thinking' | 'listening') => void;
-  currentLanguage: SupportedLanguage;
+  currentLanguage: string;
+  currentPersonality?: PersonalityId;
 }
 
 export const useChatMessageHandler = ({
@@ -24,61 +25,92 @@ export const useChatMessageHandler = ({
   speak,
   onSpeakingChange,
   onEmotionChange,
-  currentLanguage
+  currentLanguage,
+  currentPersonality = 'friendly'
 }: UseChatMessageHandlerProps) => {
-  const handleSendMessage = useCallback(async (text?: string, inputText?: string) => {
-    const messageText = text || inputText?.trim();
-    if (!messageText) return;
+  const processingRef = useRef(false);
 
-    console.log(`📝 Traitement du message en ${currentLanguage}: "${messageText}"`);
+  const handleSendMessage = useCallback(async (transcript?: string, manualInput?: string, files?: FileList | File[]) => {
+    const messageText = transcript || manualInput;
+    
+    if (!messageText?.trim() || processingRef.current) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: messageText,
-      isUser: true,
-      timestamp: new Date()
-    };
-
-    addMessage(userMessage);
-    setInputText('');
-
-    // Utiliser le moteur de discussion avancé avec la langue spécifiée
+    processingRef.current = true;
+    
     try {
-      const response = await processMessage(messageText, currentLanguage);
+      // Démarrer le timer pour les métriques
+      conversationMetrics.startResponseTimer();
+      
+      // Annoncer le début du traitement
+      accessibilityManager.announce('Traitement de votre message en cours');
+      
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        text: messageText.trim(),
+        isUser: true,
+        timestamp: new Date()
+      };
 
-      const aiMessage: Message = {
+      addMessage(userMessage);
+      if (!transcript) {
+        setInputText('');
+      }
+
+      onEmotionChange('thinking');
+
+      const response = await processMessage(
+        messageText.trim(), 
+        currentLanguage as 'fr' | 'ar',
+        files
+      );
+
+      const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response,
         isUser: false,
         timestamp: new Date()
       };
 
-      addMessage(aiMessage);
-      
-      // Synthèse vocale de la réponse avec la langue appropriée
+      addMessage(assistantMessage);
+
+      // Enregistrer les métriques
+      conversationMetrics.recordResponse(
+        currentPersonality,
+        response.length,
+        undefined, // Intent sera ajouté plus tard si disponible
+        undefined  // Emotion sera ajoutée plus tard si disponible
+      );
+
+      // Annoncer la réponse pour les lecteurs d'écran
+      accessibilityManager.announce(`Réponse reçue: ${response.substring(0, 100)}${response.length > 100 ? '...' : ''}`);
+
       if (speechEnabled) {
-        console.log(`🎤 Synthèse vocale de la réponse en ${currentLanguage}: "${response}"`);
-        speak(
-          response,
-          () => onSpeakingChange(true),
-          () => {
-            onSpeakingChange(false);
-            onEmotionChange('neutral');
-          },
-          currentLanguage // Passer la langue à la synthèse vocale
-        );
+        onSpeakingChange(true);
+        speak(response);
       }
+
+      onEmotionChange('happy');
+      setTimeout(() => onEmotionChange('neutral'), 2000);
+
     } catch (error) {
-      console.error('❌ Erreur lors du traitement du message:', error);
-      const errorMsg = currentLanguage === 'ar' 
-        ? "خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى."
-        : "Impossible de traiter votre message. Veuillez réessayer.";
+      console.error('Erreur lors du traitement du message:', error);
       
-      toast.error(currentLanguage === 'ar' ? "خطأ" : "Erreur", {
-        description: errorMsg
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      accessibilityManager.announce(`Erreur lors du traitement: ${errorMessage}`, 'assertive');
+      
+      const errorAssistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Désolé, j'ai rencontré une erreur : ${errorMessage}`,
+        isUser: false,
+        timestamp: new Date()
+      };
+
+      addMessage(errorAssistantMessage);
+      onEmotionChange('neutral');
+    } finally {
+      processingRef.current = false;
     }
-  }, [addMessage, setInputText, processMessage, speechEnabled, speak, onSpeakingChange, onEmotionChange, currentLanguage]);
+  }, [addMessage, setInputText, processMessage, speechEnabled, speak, onSpeakingChange, onEmotionChange, currentLanguage, currentPersonality]);
 
   return { handleSendMessage };
 };

@@ -5,6 +5,8 @@ import { PersonalitySelector } from '@/components/PersonalitySelector';
 import { GenderSelector } from '@/components/GenderSelector';
 import { TutorialOverlay } from '@/components/tutorial/TutorialOverlay';
 import { StateIndicator } from '@/components/ui/StateIndicator';
+import { AccessibilityControls } from '@/components/accessibility/AccessibilityControls';
+import { ConversationMetricsDisplay } from '@/components/metrics/ConversationMetricsDisplay';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import { PersonalityId } from '@/types/personality';
 import { Gender } from '@/types/gender';
 import { SupportedLanguage } from '@/types/speechRecognition';
 import { useTutorial } from '@/hooks/useTutorial';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { HelpCircle, Sparkles } from 'lucide-react';
 
 const Index = () => {
@@ -21,6 +24,8 @@ const Index = () => {
   const [currentPersonality, setCurrentPersonality] = useState<PersonalityId>('friendly');
   const [currentGender, setCurrentGender] = useState<Gender>('male');
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>('fr');
+  const [showAccessibilityControls, setShowAccessibilityControls] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   const {
     showTutorial,
@@ -29,6 +34,34 @@ const Index = () => {
     completeTutorial,
     closeTutorial
   } = useTutorial();
+
+  // Raccourcis clavier globaux
+  const globalShortcuts = [
+    {
+      key: 't',
+      ctrlKey: true,
+      action: startTutorial,
+      description: 'Ouvrir le tutoriel'
+    },
+    {
+      key: 'm',
+      ctrlKey: true,
+      shiftKey: true,
+      action: () => setShowMetrics(!showMetrics),
+      description: 'Basculer l\'affichage des métriques'
+    },
+    {
+      key: 'Escape',
+      action: () => {
+        setShowAccessibilityControls(false);
+        setShowMetrics(false);
+        if (showTutorial) closeTutorial();
+      },
+      description: 'Fermer tous les panneaux'
+    }
+  ];
+
+  useKeyboardShortcuts({ shortcuts: globalShortcuts });
 
   console.log('Index component state:', { isListening, isSpeaking, emotion, currentPersonality, currentGender, currentLanguage });
 
@@ -48,9 +81,23 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      {/* Skip links pour l'accessibilité */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded"
+      >
+        Aller au contenu principal
+      </a>
+      <a 
+        href="#chat-interface" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-40 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded"
+      >
+        Aller à l'interface de chat
+      </a>
+
       <div className="max-w-7xl mx-auto">
         {/* Header avec indicateur d'état principal */}
-        <div className="text-center mb-8">
+        <header className="text-center mb-8" role="banner">
           <div className="flex items-center justify-center gap-4 mb-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Avatar AI Local - Moteur de Discussion Avancé
@@ -65,7 +112,7 @@ const Index = () => {
             Assistant avatar 3D avec IA conversationnelle, personnalités multiples, mémoire contextuelle et gestion d'interruption intelligente
           </p>
           
-          <div className="flex justify-center gap-2 flex-wrap mb-4">
+          <div className="flex justify-center gap-2 flex-wrap mb-4" role="list" aria-label="Fonctionnalités disponibles">
             <Badge variant="secondary">🎤 Reconnaissance Vocale</Badge>
             <Badge variant="secondary">🔊 Synthèse Vocale</Badge>
             <Badge variant="secondary">🧠 Moteur Discussion Avancé</Badge>
@@ -74,30 +121,36 @@ const Index = () => {
             <Badge variant="secondary">🔄 Gestion Interruption</Badge>
             <Badge variant="secondary">🎮 Avatar 3D</Badge>
             <Badge variant="secondary">🔒 100% Privé</Badge>
+            <Badge variant="secondary">♿ Accessibilité</Badge>
+            <Badge variant="secondary">📊 Métriques</Badge>
           </div>
 
           {/* Bouton d'aide et tutoriel */}
-          <div className="flex justify-center gap-2">
+          <nav className="flex justify-center gap-2" aria-label="Actions principales">
             <Button
               variant="outline"
               size="sm"
               onClick={startTutorial}
               className="flex items-center gap-2"
+              aria-describedby="tutorial-help"
             >
               <HelpCircle className="h-4 w-4" />
               {hasCompletedTutorial ? 'Revoir le tutoriel' : 'Guide d\'utilisation'}
             </Button>
+            <span id="tutorial-help" className="sr-only">
+              Ouvre un guide interactif pour apprendre à utiliser l'application
+            </span>
             {!hasCompletedTutorial && (
               <Badge variant="default" className="animate-pulse">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Nouveau !
               </Badge>
             )}
-          </div>
-        </div>
+          </nav>
+        </header>
 
         {/* Controls Section avec classes pour le tutoriel */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6" aria-label="Sélecteurs de configuration">
           {/* Personality Selector */}
           <div className="personality-selector">
             <PersonalitySelector
@@ -114,76 +167,80 @@ const Index = () => {
               currentLanguage={currentLanguage}
             />
           </div>
-        </div>
+        </section>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]">
+        <main id="main-content" className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]" role="main">
           {/* Avatar Section */}
-          <Card className="flex flex-col">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between">
-                <span>Avatar 3D Interactif</span>
-                <div className="flex gap-2">
-                  <StateIndicator state={getCurrentState() as any} />
+          <section aria-label="Avatar 3D et informations d'état">
+            <Card className="flex flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between">
+                  <span>Avatar 3D Interactif</span>
+                  <div className="flex gap-2">
+                    <StateIndicator state={getCurrentState() as any} />
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <div role="img" aria-label={`Avatar ${getGenderDisplayText(currentGender)} en état ${getCurrentState()}`}>
+                  <Avatar3DWrapper 
+                    isListening={isListening}
+                    isSpeaking={isSpeaking}
+                    emotion={emotion === 'listening' ? 'thinking' : emotion}
+                    gender={currentGender}
+                  />
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <Avatar3DWrapper 
-                isListening={isListening}
-                isSpeaking={isSpeaking}
-                emotion={emotion === 'listening' ? 'thinking' : emotion}
-                gender={currentGender}
-              />
-              
-              {/* Status Info amélioré avec indicateurs visuels */}
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  État du système :
-                </h3>
-                <div className="grid grid-cols-1 gap-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span>Reconnaissance vocale :</span>
-                    <StateIndicator 
-                      state={isListening ? 'listening' : 'ready'}
-                      variant="compact"
-                      showText={false}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Synthèse vocale :</span>
-                    <StateIndicator 
-                      state={isSpeaking ? 'speaking' : 'ready'}
-                      variant="compact"
-                      showText={false}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>État émotionnel :</span>
-                    <Badge variant="outline" className="capitalize">
-                      {emotion === 'listening' ? 'À l\'écoute' : emotion}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Personnalité :</span>
-                    <Badge variant="secondary" className="capitalize">
-                      {currentPersonality}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>Genre :</span>
-                    <Badge variant="outline">
-                      {getGenderDisplayText(currentGender)}
-                    </Badge>
+                
+                {/* Status Info amélioré avec indicateurs visuels */}
+                <div className="mt-4 p-4 bg-muted rounded-lg" role="region" aria-label="État du système">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    État du système :
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span>Reconnaissance vocale :</span>
+                      <StateIndicator 
+                        state={isListening ? 'listening' : 'ready'}
+                        variant="compact"
+                        showText={false}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Synthèse vocale :</span>
+                      <StateIndicator 
+                        state={isSpeaking ? 'speaking' : 'ready'}
+                        variant="compact"
+                        showText={false}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>État émotionnel :</span>
+                      <Badge variant="outline" className="capitalize">
+                        {emotion === 'listening' ? 'À l\'écoute' : emotion}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Personnalité :</span>
+                      <Badge variant="secondary" className="capitalize">
+                        {currentPersonality}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Genre :</span>
+                      <Badge variant="outline">
+                        {getGenderDisplayText(currentGender)}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </section>
 
           {/* Chat Section avec classe pour tutoriel */}
-          <div className="chat-interface">
+          <section id="chat-interface" className="chat-interface" aria-label="Interface de conversation">
             <ChatInterface
               onListeningChange={setIsListening}
               onSpeakingChange={setIsSpeaking}
@@ -193,11 +250,11 @@ const Index = () => {
               currentGender={currentGender}
               onLanguageChange={setCurrentLanguage}
             />
-          </div>
-        </div>
+          </section>
+        </main>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" aria-label="Informations sur les fonctionnalités">
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-2">🎭 Personnalités Multiples</h3>
@@ -233,8 +290,19 @@ const Index = () => {
               </ul>
             </CardContent>
           </Card>
-        </div>
+        </section>
       </div>
+
+      {/* Composants d'accessibilité et métriques */}
+      <AccessibilityControls
+        isVisible={showAccessibilityControls}
+        onToggleVisibility={() => setShowAccessibilityControls(!showAccessibilityControls)}
+      />
+
+      <ConversationMetricsDisplay
+        isVisible={showMetrics}
+        onToggle={() => setShowMetrics(!showMetrics)}
+      />
 
       {/* Tutoriel Overlay */}
       <TutorialOverlay

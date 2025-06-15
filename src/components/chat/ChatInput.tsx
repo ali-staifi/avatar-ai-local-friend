@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff, Send, X, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, Send, Volume2 } from 'lucide-react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { SpeechEngine, SupportedLanguage } from '@/types/speechRecognition';
 
 interface ChatInputProps {
@@ -15,9 +16,9 @@ interface ChatInputProps {
   currentEngine: SpeechEngine;
   engineStatus: 'ready' | 'loading' | 'error';
   currentLanguage: SupportedLanguage;
-  vadEnabled?: boolean;
-  vadSupported?: boolean;
-  vadListening?: boolean;
+  vadEnabled: boolean;
+  vadSupported: boolean;
+  vadListening: boolean;
   bufferStatus?: {
     bufferUsage: number;
     isInVoiceSegment: boolean;
@@ -42,199 +43,118 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   vadListening,
   bufferStatus
 }) => {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       onSendMessage();
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
+  const focusTextarea = () => {
+    textareaRef.current?.focus();
   };
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files);
-      setSelectedFiles(prev => [...prev, ...files]);
+  const shortcuts = [
+    {
+      key: 'l',
+      ctrlKey: true,
+      action: onToggleListening,
+      description: isListening ? 'Arrêter la reconnaissance vocale' : 'Démarrer la reconnaissance vocale'
+    },
+    {
+      key: 'Enter',
+      action: onSendMessage,
+      description: 'Envoyer le message',
     }
-  };
+  ];
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...files]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const getMicButtonColor = () => {
-    if (engineStatus === 'error') return 'text-red-500';
-    if (isListening) return 'text-green-500';
-    return '';
-  };
-
-  const getMicTooltip = () => {
-    if (engineStatus === 'error') return 'Erreur de reconnaissance vocale';
-    if (engineStatus === 'loading') return 'Chargement...';
-    if (isListening) return 'Arrêter l\'écoute';
-    return 'Commencer l\'écoute';
-  };
-
-  const getVadIndicator = () => {
-    if (!vadEnabled || !vadSupported) return null;
-    
-    return (
-      <div className="absolute -top-1 -right-1">
-        <div 
-          className={`h-2 w-2 rounded-full ${
-            vadListening ? 'bg-green-500' : 'bg-gray-300'
-          }`}
-        />
-      </div>
-    );
-  };
-
-  const getBufferIndicator = () => {
-    if (!bufferStatus || !vadEnabled || !vadSupported) return null;
-    
-    return (
-      <div className="absolute -bottom-1 -left-1 right-0 h-1 bg-gray-200 rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-blue-500 transition-all"
-          style={{ width: `${bufferStatus.bufferUsage * 100}%` }}
-        />
-      </div>
-    );
-  };
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [inputText]);
+  useKeyboardShortcuts({ shortcuts });
 
   return (
-    <div className="space-y-4">
-      {/* Zone de drag & drop pour les fichiers */}
-      <div
-        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-          isDragOver ? 'border-primary bg-primary/5' : 'border-gray-300'
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          accept="image/*,.pdf,.txt,.docx"
-          onChange={handleFileSelect}
+    <div className="flex items-end gap-2 p-4 border-t bg-background" role="region" aria-label="Zone de saisie de message">
+      <div className="flex-1 relative">
+        <Textarea
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Écrivez votre message... (Entrée pour envoyer, Ctrl+L pour activer le micro)"
+          className="min-h-[60px] resize-none pr-12"
+          disabled={isSpeaking && !canBeInterrupted}
+          aria-label="Champ de saisie du message"
+          aria-describedby="input-help typing-indicator"
+          aria-live="polite"
+          ref={textareaRef}
         />
         
-        {selectedFiles.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Fichiers sélectionnés:</p>
-            {Array.from(selectedFiles).map((file, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                <span className="text-sm truncate">{file.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFile(index)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div>
-            <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm text-gray-600">
-              Glissez des fichiers ici ou{' '}
-              <button
-                type="button"
-                className="text-primary hover:underline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                parcourez
-              </button>
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Images, PDF, documents texte
-            </p>
+        <div id="input-help" className="sr-only">
+          Saisissez votre message et appuyez sur Entrée pour l'envoyer. 
+          Utilisez Ctrl+L pour activer la reconnaissance vocale.
+          {isListening && " Reconnaissance vocale active, parlez maintenant."}
+          {isSpeaking && !canBeInterrupted && " L'assistant parle actuellement."}
+        </div>
+
+        {(isListening || isSpeaking) && (
+          <div 
+            id="typing-indicator" 
+            className="absolute bottom-2 right-2"
+            aria-live="polite"
+            aria-label={isListening ? "Écoute en cours" : "Synthèse vocale active"}
+          >
+            <div className="flex items-center gap-1">
+              {isListening && (
+                <>
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="sr-only">Reconnaissance vocale active</span>
+                </>
+              )}
+              {isSpeaking && (
+                <>
+                  <Volume2 className="h-4 w-4 text-blue-500 animate-pulse" />
+                  <span className="sr-only">Synthèse vocale en cours</span>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="flex items-end gap-2">
-        <div className="relative">
-          <Button
-            type="button"
-            size="icon"
-            variant={isListening ? "default" : "outline"}
-            onClick={onToggleListening}
-            disabled={engineStatus === 'loading'}
-            className={getMicButtonColor()}
-            title={getMicTooltip()}
-          >
-            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            {getVadIndicator()}
-            {getBufferIndicator()}
-          </Button>
+      <div className="flex gap-1">
+        <Button
+          onClick={onToggleListening}
+          size="sm"
+          variant={isListening ? "destructive" : "outline"}
+          disabled={isSpeaking && !canBeInterrupted}
+          className="h-10 w-10"
+          aria-label={isListening ? "Arrêter la reconnaissance vocale" : "Démarrer la reconnaissance vocale"}
+          aria-describedby="mic-status"
+          aria-pressed={isListening}
+        >
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </Button>
+        
+        <div id="mic-status" className="sr-only">
+          État du microphone: {isListening ? "actif" : "inactif"}. 
+          Moteur: {currentEngine}, Langue: {currentLanguage}.
+          {vadEnabled && vadSupported && ` Détection d'activité vocale: ${vadListening ? "active" : "inactive"}`}
         </div>
 
-        <div className="flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Écrivez votre message... (${currentLanguage})`}
-            className="min-h-[60px] resize-none"
-            rows={1}
-          />
-        </div>
-
-        <Button 
-          type="button" 
+        <Button
           onClick={onSendMessage}
-          disabled={!inputText.trim() && selectedFiles.length === 0}
+          size="sm"
+          disabled={!inputText.trim() || (isSpeaking && !canBeInterrupted)}
+          className="h-10 w-10"
+          aria-label="Envoyer le message"
         >
           <Send className="h-4 w-4" />
         </Button>
       </div>
 
-      {isSpeaking && canBeInterrupted && (
-        <div className="text-center">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onToggleListening}
-            className="text-xs"
-          >
-            Interrompre la réponse
-          </Button>
+      {/* VAD Status for screen readers */}
+      {vadEnabled && vadSupported && bufferStatus && (
+        <div className="sr-only" aria-live="polite">
+          {bufferStatus.isInVoiceSegment && "Parole détectée"}
         </div>
       )}
     </div>
