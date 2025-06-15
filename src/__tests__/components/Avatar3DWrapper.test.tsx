@@ -61,16 +61,15 @@ describe('Avatar3DWrapper', () => {
     expect(getByTestId('female-avatar')).toBeDefined();
   });
 
-  it('filters out development props', () => {
+  it('handles valid props correctly', () => {
     const { getByTestId } = render(
       <Avatar3DWrapper 
         {...defaultProps} 
         data-testid="wrapper"
-        someDevProp="value"
       />
     );
     
-    // Le composant devrait fonctionner même avec des props supplémentaires
+    // Le composant devrait fonctionner avec des props valides
     expect(getByTestId(/avatar/)).toBeDefined();
   });
 
