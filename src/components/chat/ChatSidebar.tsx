@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SupportedLanguage } from '@/types/speechRecognition';
-import { OllamaConfig } from '@/hooks/useOllama';
+import { OllamaConfig, OllamaModel } from '@/hooks/useOllama';
 import { LanguageSelector } from '@/components/speech/LanguageSelector';
 import { OllamaSelector } from '@/components/ollama/OllamaSelector';
 import { IntegrationsPanel } from '@/components/integrations/IntegrationsPanel';
@@ -13,7 +14,7 @@ interface ChatSidebarProps {
   onLanguageChange: (language: SupportedLanguage) => void;
   isListening: boolean;
   ollamaAvailable: boolean;
-  ollamaModels: string[];
+  ollamaModels: OllamaModel[];
   ollamaLoading: boolean;
   ollamaConfig: OllamaConfig;
   onOllamaConfigUpdate: (config: Partial<OllamaConfig>) => void;
@@ -47,7 +48,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <LanguageSelector
             currentLanguage={currentLanguage}
             onLanguageChange={onLanguageChange}
-            disabled={isListening}
           />
         </CardContent>
       </Card>
