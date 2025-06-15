@@ -31,7 +31,7 @@ export class VoiceActivityDetector {
   private isInVoiceSegment: boolean = false;
   private audioContext: AudioContext | null = null;
   private processor: ScriptProcessorNode | null = null;
-  private mediaStreamSource: MediaStreamSourceNode | null = null;
+  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
   private mediaStream: MediaStream | null = null;
   private callbacks: Set<(result: VADResult) => void> = new Set();
   
